@@ -1,0 +1,6 @@
+node_modules/
+.next/
+.env
+.env.local
+quantum-scheduler-25e7cefa2284.json
+*.log

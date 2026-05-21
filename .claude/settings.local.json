@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Google_Drive__read_file_content",
+      "mcp__claude_ai_Google_Drive__search_files",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(node fetch-sheet.mjs)",
+      "Bash(node fetch-full-sheet.mjs)",
+      "Bash(Remove-Item -Force fetch-sheet.mjs, fetch-full-sheet.mjs, package.json, package-lock.json -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue)",
+      "Bash(curl -s http://localhost:3000/schedule)",
+      "Bash(curl -s \"http://localhost:3000/api/bookings\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); const w=j.filter\\(b=>b.week==='18-24 MAY 2026'\\); console.log\\('Total bookings this week:', w.length\\); console.log\\('Court 0:', w.filter\\(b=>b.court===0\\).length\\); console.log\\('Court 1:', w.filter\\(b=>b.court===1\\).length\\); console.log\\('Court 2:', w.filter\\(b=>b.court===2\\).length\\); console.log\\('Court 3:', w.filter\\(b=>b.court===3\\).length\\); console.log\\('Court 4:', w.filter\\(b=>b.court===4\\).length\\); console.log\\('Sample court bookings:', JSON.stringify\\(w.filter\\(b=>b.court>0\\).slice\\(0,3\\), null, 2\\)\\);\")",
+      "Bash(curl -s \"http://localhost:3000/api/bookings\" -o /tmp/bookings.json)",
+      "Bash(node -e \"const j=require\\('/tmp/bookings.json'\\); const w=j.filter\\(b=>b.week==='18-24 MAY 2026'\\); console.log\\('Total:', w.length, 'Court>0:', w.filter\\(b=>b.court>0\\).length, 'Court 0:', w.filter\\(b=>b.court===0\\).length\\); console.log\\('Sample:', JSON.stringify\\(w.filter\\(b=>b.court>0\\).slice\\(0,3\\),null,2\\)\\);\")",
+      "Bash(curl -s \"http://localhost:3000/api/bookings\" -o \"C:/Temp/bookings.json\")",
+      "Bash(node -e \"const j=require\\('C:/Temp/bookings.json'\\); const w=j.filter\\(b=>b.week==='18-24 MAY 2026'\\); console.log\\('Total:', w.length, 'Court>0:', w.filter\\(b=>b.court>0\\).length, 'Court 0:', w.filter\\(b=>b.court===0\\).length\\); console.log\\(JSON.stringify\\(w.filter\\(b=>b.court>0\\).slice\\(0,3\\),null,2\\)\\);\")",
+      "PowerShell($r = Invoke-RestMethod -Uri \"http://localhost:3000/api/bookings\"; $w = $r | Where-Object { $_.week -eq \"18-24 MAY 2026\" }; Write-Host \"Total: $\\($w.Count\\)\"; Write-Host \"Court>0: $\\(\\($w | Where-Object { $_.court -gt 0 }\\).Count\\)\"; Write-Host \"Court 0: $\\(\\($w | Where-Object { $_.court -eq 0 }\\).Count\\)\"; $sample = $w | Where-Object { $_.court -gt 0 } | Select-Object -First 3; $sample | ConvertTo-Json)",
+      "Bash(node fetch-new-sheet.mjs)",
+      "Bash(curl -s http://localhost:3000/courts)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/courts\" -UseBasicParsing; $r.Content | Select-String \"text-3xl font-bold text-emerald\" | Select-Object -First 3)",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/courts\" -UseBasicParsing; if \\($r.Content -match 'text-3xl font-bold text-emerald-700\">\\([\\\\d.]+\\)<'\\) { Write-Host \"Total hours: $\\($Matches[1]\\)\" }; if \\($r.Content -match 'text-3xl font-bold text-gray-700\">\\([\\\\d.]+\\)<'\\) { Write-Host \"Bookings: $\\($Matches[1]\\)\" }; if \\($r.Content -match 'Court 1'\\) { Write-Host \"Court 1 badge found\" }; if \\($r.Content -match 'K\\\\.FAI|Benz|Earn'\\) { Write-Host \"Client/Coach data found\" })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; if \\($r.Content -match 'bg-blue-100'\\) { Write-Host \"Coach colors found\" }; if \\($r.Content -match 'C[1-5]'\\) { Write-Host \"Court number badges found\" }; if \\($r.Content -match 'All Coaches'\\) { Write-Host \"Coach filter found\" }; Write-Host \"Page size: $\\($r.Content.Length\\) chars\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; $matches = [regex]::Matches\\($r.Content, '\"C\\([1-5]\\)\"'\\); Write-Host \"Court badge occurrences: $\\($matches.Count\\)\"; $coaches = [regex]::Matches\\($r.Content, 'bg-blue-400|bg-emerald-400|bg-amber-400|bg-purple-400|bg-rose-400'\\); Write-Host \"Coach color dots: $\\($coaches.Count\\)\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; $m = [regex]::Matches\\($r.Content, '>C[1-5]<'\\); Write-Host \"Court badges: $\\($m.Count\\)\"; $sample = $r.Content.Substring\\($r.Content.IndexOf\\('>C3<'\\) - 80, 160\\); Write-Host \"Sample: $sample\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; $idx = $r.Content.IndexOf\\('Benz'\\); if \\($idx -gt 0\\) { Write-Host \"Benz found at: $idx\"; Write-Host $r.Content.Substring\\([Math]::Max\\(0,$idx-100\\), 250\\) })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; $idx = $r.Content.IndexOf\\('bg-amber-400 text-white leading-tight'\\); if \\($idx -ge 0\\) { Write-Host \"Found court badge\"; Write-Host $r.Content.Substring\\([Math]::Max\\(0,$idx-20\\), 100\\) } else { Write-Host \"Not found - searching for booking card...\"; $idx2 = $r.Content.IndexOf\\('text-xs font-medium leading-tight'\\); Write-Host \"booking card found: $\\($idx2 -ge 0\\)\"; if \\($idx2 -ge 0\\) { Write-Host $r.Content.Substring\\([Math]::Max\\(0,$idx2-50\\), 200\\) } })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/schedule\" -UseBasicParsing; if \\($r.Content -match 'height:60px'\\) { Write-Host \"Row height 60px found\" }; if \\($r.Content -match 'height:118px'\\) { Write-Host \"Span-2 card height 118px found\" }; $m = [regex]::Matches\\($r.Content, '08:00'\\); Write-Host \"08:00 occurrences: $\\($m.Count\\)\"; $m2 = [regex]::Matches\\($r.Content, 'height:\\\\d+px'\\); Write-Host \"height px values: $\\($m2 | Select-Object -First 5 -ExpandProperty Value\\)\")",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/courts\" -UseBasicParsing; $m = [regex]::Matches\\($r.Content, '<td class=\"px-4 py-2\\\\.5 text-gray-600\">\\([^<]+\\)</td>'\\); $vals = $m | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique; Write-Host \"Class column values: $\\($vals -join ', '\\)\")",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
