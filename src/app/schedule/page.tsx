@@ -2,14 +2,15 @@ import { getBookingRows } from "@/lib/sheets";
 import { parseRecords, groupByWeek } from "@/lib/parse";
 import ScheduleView from "@/components/ScheduleView";
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export default async function SchedulePage() {
   const rows = await getBookingRows();
   const all = parseRecords(rows);
   const weeks = groupByWeek(all);
 
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   let defaultWeek = 0;
   for (let i = 0; i < weeks.length; i++) {
     if (weeks[i].weekStart <= today) defaultWeek = i;

@@ -56,17 +56,33 @@ export default function CourtMonitor({
           <h1 className="text-2xl font-bold text-gray-800">Court Monitor</h1>
           <p className="text-sm text-gray-500 mt-0.5">{week.weekLabel}</p>
         </div>
-        <select
-          value={selectedWeek}
-          onChange={(e) => setSelectedWeek(Number(e.target.value))}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          {weeks.map((w, i) => (
-            <option key={w.weekStart} value={i}>
-              {w.weekLabel}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSelectedWeek((w) => Math.max(0, w - 1))}
+            disabled={selectedWeek === 0}
+            className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ‹
+          </button>
+          <select
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(Number(e.target.value))}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {weeks.map((w, i) => (
+              <option key={w.weekStart} value={i}>
+                {w.weekLabel}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => setSelectedWeek((w) => Math.min(weeks.length - 1, w + 1))}
+            disabled={selectedWeek === weeks.length - 1}
+            className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}

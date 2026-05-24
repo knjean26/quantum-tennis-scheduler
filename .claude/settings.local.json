@@ -30,7 +30,27 @@
       "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/courts\" -UseBasicParsing; $m = [regex]::Matches\\($r.Content, '<td class=\"px-4 py-2\\\\.5 text-gray-600\">\\([^<]+\\)</td>'\\); $vals = $m | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique; Write-Host \"Class column values: $\\($vals -join ', '\\)\")",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "PowerShell(npm install *)",
+      "Bash(vercel *)",
+      "Bash(npm run *)",
+      "Bash(npm show *)",
+      "Bash(node -e \"const v=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const arr=JSON.parse\\(v\\); console.log\\(arr.filter\\(x=>x.startsWith\\('15'\\)\\).slice\\(-5\\).join\\('\\\\n'\\)\\)\")",
+      "PowerShell(Get-Process *)",
+      "Bash(node -e \"const pkg=require\\('./node_modules/next/package.json'\\); console.log\\(pkg.version\\)\")",
+      "Bash(npm audit *)",
+      "Bash(npx tsc *)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl -s http://localhost:3000/admin)",
+      "Bash(curl -s http://localhost:3000/api/admin/data)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); r=d['rows'][0]['values']; print\\('ROW LENGTH:', len\\(r\\)\\); [print\\(f'  [{i}] = {repr\\(r[i]\\)}'\\) for i in [0,1,2,3,4,5,6,7,8,9,43,45,46,47,48,49,50,52] if i < len\\(r\\)]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('RATE CARD:'\\); [print\\(r\\) for r in d['rateCard'][:5]]; print\\(\\); print\\('COACH RATE CARD:'\\); [print\\(r\\) for r in d['coachRateCard'][:5]]; print\\(\\); print\\('CLASS TYPES:', d['dropdowns']['classTypes'][:5]\\); print\\('COACHES:', d['dropdowns']['coaches'][:5]\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python3 -c ' *)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git push *)"
     ]
   }
 }

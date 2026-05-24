@@ -152,15 +152,31 @@ export default function ScheduleView({
       {/* Week selector */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-gray-800">Full Schedule</h1>
-        <select
-          value={selectedWeek}
-          onChange={(e) => { setSelectedWeek(Number(e.target.value)); setFilterCourt("all"); setFilterCoach("all"); }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-        >
-          {weeks.map((w, i) => (
-            <option key={w.weekStart} value={i}>{w.weekLabel}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSelectedWeek((w) => Math.max(0, w - 1)); setFilterCourt("all"); setFilterCoach("all"); }}
+            disabled={selectedWeek === 0}
+            className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ‹
+          </button>
+          <select
+            value={selectedWeek}
+            onChange={(e) => { setSelectedWeek(Number(e.target.value)); setFilterCourt("all"); setFilterCoach("all"); }}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            {weeks.map((w, i) => (
+              <option key={w.weekStart} value={i}>{w.weekLabel}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => { setSelectedWeek((w) => Math.min(weeks.length - 1, w + 1)); setFilterCourt("all"); setFilterCoach("all"); }}
+            disabled={selectedWeek === weeks.length - 1}
+            className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ›
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -217,9 +233,9 @@ export default function ScheduleView({
           <colgroup>
             <col style={{ width: "52px" }} />
             {DAYS.flatMap((_, di) => [
-              <col key={`${di}-0`} style={{ width: "48px" }} />,
-              <col key={`${di}-1`} style={{ width: "48px" }} />,
-              <col key={`${di}-2`} style={{ width: "48px" }} />,
+              <col key={`${di}-0`} style={{ width: "80px" }} />,
+              <col key={`${di}-1`} style={{ width: "80px" }} />,
+              <col key={`${di}-2`} style={{ width: "80px" }} />,
             ])}
           </colgroup>
           <thead>
@@ -264,14 +280,14 @@ export default function ScheduleView({
                   return [0, 1, 2].map((col) => {
                     const cell = dayGrid[timeIdx]?.[col];
                     if (cell === "spanned") return null;
-                    const booking = cell && cell !== "spanned" ? cell : null;
+                    const booking = cell ?? null;
                     const span = booking ? booking.span : 1;
                     const record = booking ? booking.record : null;
                     return (
                       <td
                         key={`${day}-${col}`}
                         rowSpan={span}
-                        style={{ overflow: "hidden", maxWidth: "48px" }}
+                        style={{ overflow: "hidden", maxWidth: "64px" }}
                         className={`p-0.5 align-top border-b border-gray-100 ${col === 2 && di < 6 ? "border-r border-gray-200" : col < 2 ? "border-r border-gray-100" : ""}`}
                       >
                         {record && (
