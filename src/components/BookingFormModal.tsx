@@ -103,9 +103,11 @@ function lookupCoachRateCard(
 
 function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?: string }): BookingFormData {
   if (booking) {
+    // If court stored as "34" (two-hour split), keep only first digit in the form field
+    const court = (booking.court?.length ?? 0) >= 2 ? booking.court[0] : booking.court;
     return {
       date: booking.date,
-      court: booking.court,
+      court,
       startTime: booking.startTime,
       endTime: booking.endTime,
       classType: booking.classType,
@@ -129,7 +131,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
     court: "",
     startTime: prefill?.startTime ?? "",
     endTime: "",
-    classType: "",
+    classType: "Private",
     classValue: "",
     students: "1",
     price: "",
@@ -174,6 +176,12 @@ export default function BookingFormModal({
   const [form, setForm] = useState<BookingFormData>(() => initForm(booking, prefill));
   const [errors, setErrors] = useState<string[]>([]);
 
+  // Split-court state: only relevant for 2-hour bookings
+  const [splitCourt, setSplitCourt] = useState(() => (booking?.court?.length ?? 0) >= 2);
+  const [courtSecond, setCourtSecond] = useState<string>(() =>
+    (booking?.court?.length ?? 0) >= 2 ? booking!.court[1] : ""
+  );
+
   function set(key: keyof BookingFormData, val: string) {
     setForm((prev) => ({ ...prev, [key]: val }));
   }
@@ -202,18 +210,36 @@ export default function BookingFormModal({
     return hardcoded.length > 0 ? hardcoded : classOptionsFromRC;
   }, [form.classType, classOptionsFromRC]);
 
-  // Coach options filtered by selected class from Coach Rate Card col 1
-  const coachOptionsForClass = useMemo(() => {
-    if (!form.classValue) return dropdowns.coaches;
-    const cv = form.classValue.toLowerCase().trim();
-    const filtered = [...new Set(
-      coachRateCard.slice(1)
-        .filter((r) => (r[0] ?? "").toLowerCase().trim() === cv)
-        .map((r) => (r[1] ?? "").trim())
-        .filter(Boolean)
+  // All coaches from Coach Rate Card (coach-first flow)
+  const allCoachOptions = useMemo(() => {
+    if (coachRateCard.length < 2) return dropdowns.coaches;
+    const fromRC = [...new Set(
+      coachRateCard.slice(1).map((r) => (r[1] ?? "").trim()).filter(Boolean)
     )].sort();
-    return filtered.length > 0 ? filtered : dropdowns.coaches;
-  }, [form.classValue, coachRateCard, dropdowns.coaches]);
+    return fromRC.length > 0 ? fromRC : dropdowns.coaches;
+  }, [coachRateCard, dropdowns.coaches]);
+
+  // Auto-detect class from selected coach
+  useEffect(() => {
+    if (!form.coachName || coachRateCard.length < 2) return;
+    const cn = form.coachName.toLowerCase().trim();
+    const classes = [...new Set(
+      coachRateCard.slice(1)
+        .filter((r) => (r[1] ?? "").toLowerCase().trim() === cn)
+        .map((r) => (r[0] ?? "").trim())
+        .filter(Boolean)
+    )];
+    if (classes.length > 0) set("classValue", classes[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.coachName, coachRateCard]);
+
+  // Reset split-court when duration changes away from 2
+  useEffect(() => {
+    if (duration !== 2) {
+      setSplitCourt(false);
+      setCourtSecond("");
+    }
+  }, [duration]);
 
   // Price from Rate Card
   useEffect(() => {
@@ -283,13 +309,16 @@ export default function BookingFormModal({
 
   function handleSubmit() {
     if (!validate()) return;
-    void onSave({ ...form, grandTotal: String(grandTotal) });
+    // Combine courts if split (e.g. court=3, courtSecond=4 → "34")
+    const court = splitCourt && courtSecond ? form.court + courtSecond : form.court;
+    void onSave({ ...form, court, grandTotal: String(grandTotal) });
   }
 
   const allClassTypes = [...new Set(["Private", "Foreigner", "Group", "STA", ...dropdowns.classTypes])];
 
   const field = "w-full border border-gray-300 rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
   const readField = "px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-700 font-medium";
+  const courtSelect = "w-28 border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -353,18 +382,46 @@ export default function BookingFormModal({
               </div>
             </div>
 
+            {/* Court — supports split court for 2-hour bookings */}
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Court <span className="text-red-500">*</span></label>
-              <select value={form.court} onChange={(e) => set("court", e.target.value)} className="w-32 border border-gray-300 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                <option value="">Select</option>
-                {COURTS.map((c) => <option key={c} value={c}>Court {c}</option>)}
-              </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={form.court} onChange={(e) => set("court", e.target.value)} className={courtSelect}>
+                  <option value="">Select</option>
+                  {COURTS.map((c) => <option key={c} value={c}>Court {c}</option>)}
+                </select>
+                {duration === 2 && (
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={splitCourt}
+                      onChange={(e) => { setSplitCourt(e.target.checked); if (!e.target.checked) setCourtSecond(""); }}
+                      className="w-4 h-4 rounded border-gray-300 accent-emerald-600"
+                    />
+                    <span className="text-xs text-gray-600">Different court for 2nd hour</span>
+                  </label>
+                )}
+                {splitCourt && duration === 2 && (
+                  <select value={courtSecond} onChange={(e) => setCourtSecond(e.target.value)} className={courtSelect}>
+                    <option value="">Select 2nd</option>
+                    {COURTS.map((c) => <option key={c} value={c}>Court {c}</option>)}
+                  </select>
+                )}
+              </div>
             </div>
           </section>
 
-          {/* Class */}
+          {/* Class + Coach */}
           <section className="space-y-3">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Class</h3>
+            {/* Coach first — drives class auto-detection */}
+            <Combobox
+              label="Coach Name"
+              value={form.coachName}
+              options={allCoachOptions}
+              onChange={(v) => set("coachName", v)}
+              placeholder="Search coach…"
+            />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Class Type</label>
@@ -385,10 +442,7 @@ export default function BookingFormModal({
                 <label className="block text-xs font-medium text-gray-700 mb-1">Class</label>
                 <select
                   value={form.classValue}
-                  onChange={(e) => {
-                    set("classValue", e.target.value);
-                    set("coachName", "");
-                  }}
+                  onChange={(e) => set("classValue", e.target.value)}
                   className={field}
                 >
                   <option value="">Select class</option>
@@ -401,41 +455,28 @@ export default function BookingFormModal({
             </div>
           </section>
 
-          {/* Students */}
+          {/* Students + Client — same row */}
           <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Students</h3>
-            <div className="w-40">
-              <label className="block text-xs font-medium text-gray-700 mb-1">No. of Students</label>
-              <input
-                type="number" value={form.students}
-                onChange={(e) => set("students", e.target.value)}
-                className={field}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">No. of Students</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={form.students}
+                  onChange={(e) => set("students", e.target.value)}
+                  className={field}
+                />
+              </div>
+              <Combobox
+                label="Client"
+                value={form.client}
+                options={dropdowns.clients}
+                onChange={(v) => set("client", v)}
+                placeholder="Search or type client name…"
               />
             </div>
-          </section>
-
-          {/* Client */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Client</h3>
-            <Combobox
-              label="Client"
-              value={form.client}
-              options={dropdowns.clients}
-              onChange={(v) => set("client", v)}
-              placeholder="Search or type new client name…"
-            />
-          </section>
-
-          {/* Coach */}
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Coach</h3>
-            <Combobox
-              label="Coach Name"
-              value={form.coachName}
-              options={coachOptionsForClass}
-              onChange={(v) => set("coachName", v)}
-              placeholder={form.classValue ? "Search coach…" : "Select a class first"}
-            />
           </section>
 
           {/* Status flags */}
