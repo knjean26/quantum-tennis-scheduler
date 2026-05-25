@@ -444,6 +444,17 @@ export default function BookingFormModal({
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
+                checked={form.remark === "ยังไม่ได้จ่ายเงิน"}
+                onChange={(e) => set("remark", e.target.checked ? "ยังไม่ได้จ่ายเงิน" : "")}
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500 accent-orange-500"
+              />
+              <span className={`text-sm font-medium ${form.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-700"}`}>
+                ยังไม่ได้จ่ายเงิน — not yet paid
+              </span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
                 checked={form.remark === "จองสนามเอง"}
                 onChange={(e) => set("remark", e.target.checked ? "จองสนามเอง" : "")}
                 className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 accent-purple-600"

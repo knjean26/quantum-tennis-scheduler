@@ -29,6 +29,9 @@ const COACH_PALETTE = [
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
+  `${String(6 + i).padStart(2, "0")}:00`
+);
 
 type GridCell =
   | null
@@ -136,7 +139,7 @@ export default function ScheduleView({
     return true;
   });
 
-  const allTimes = useMemo(() => getAllTimes(filtered.length ? filtered : week.records), [filtered, week]);
+  const allTimes = SCHEDULE_TIMES;
   const dayDates = useMemo(() => getDayDates(week.weekStart), [week]);
 
   const dayGrids = useMemo(() => {
@@ -227,7 +230,7 @@ export default function ScheduleView({
         style={{ overflow: "auto", maxHeight: "calc(100vh - 220px)" }}
       >
         <table
-          style={{ tableLayout: "fixed", borderCollapse: "collapse", minWidth: "760px" }}
+          style={{ tableLayout: "fixed", borderCollapse: "collapse", minWidth: "760px", width: "100%" }}
           className="text-xs"
         >
           <colgroup>
@@ -287,7 +290,7 @@ export default function ScheduleView({
                       <td
                         key={`${day}-${col}`}
                         rowSpan={span}
-                        style={{ overflow: "hidden", maxWidth: "64px" }}
+                        style={{ overflow: "hidden" }}
                         className={`p-0.5 align-top border-b border-gray-100 ${col === 2 && di < 6 ? "border-r border-gray-200" : col < 2 ? "border-r border-gray-100" : ""}`}
                       >
                         {record && (
@@ -305,10 +308,7 @@ export default function ScheduleView({
             ))}
           </tbody>
         </table>
-        {allTimes.length === 0 && (
-          <p className="text-center py-12 text-gray-400 text-sm">No bookings.</p>
-        )}
-      </div>
+        </div>
     </div>
   );
 }
@@ -336,17 +336,21 @@ function BookingCard({
       style={{ height: `${span * ROW_H - 2}px` }}
     >
       <div className="px-1 pt-1 pb-0.5 overflow-hidden">
-        {/* Court badge */}
-        {r.court && (
-          <span className="inline-block rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight mb-0.5">
-            C{r.court}
-          </span>
-        )}
-        {/* Client name — truncated to fit */}
-        <div className="font-semibold text-[11px] leading-tight text-gray-800 truncate w-full">
+        <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
+          {r.court && (
+            <span className="inline-block rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight">
+              C{r.court}
+            </span>
+          )}
+          {r.students > 0 && (
+            <span className="inline-block rounded bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1 leading-tight">
+              {r.students}s
+            </span>
+          )}
+        </div>
+        <div className={`font-semibold text-[11px] leading-tight truncate w-full ${r.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-800"}`}>
           {r.client || <span className="text-red-400 italic">–</span>}
         </div>
-        {/* Coach badge — truncated */}
         {r.coach ? (
           <div className={`mt-0.5 rounded px-1 text-[9px] font-semibold leading-tight truncate max-w-full ${cs.bg} ${cs.text}`}>
             {r.coach}

@@ -94,6 +94,10 @@ function coachStyle(coach: string, indexMap: Map<string, number>) {
   return COACH_PALETTE[idx % COACH_PALETTE.length];
 }
 
+const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
+  `${String(6 + i).padStart(2, "0")}:00`
+);
+
 // Col index → value map for "edit" API call (only columns we manage)
 const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 43, 45, 46, 47, 48, 49, 50, 52, 59];
 
@@ -202,10 +206,7 @@ export default function AdminView() {
 
   const currentWeek = weeks[selectedWeek];
 
-  const allTimes = useMemo(
-    () => (currentWeek ? getAllTimes(currentWeek.records) : []),
-    [currentWeek]
-  );
+  const allTimes = SCHEDULE_TIMES;
 
   const dayDates = useMemo(
     () => (currentWeek ? getDayDates(currentWeek.weekStart) : {}),
@@ -427,7 +428,7 @@ export default function AdminView() {
               <p className="text-center py-12 text-gray-400 text-sm">No data for this week.</p>
             ) : (
               <table
-                style={{ tableLayout: "fixed", borderCollapse: "collapse", minWidth: "760px" }}
+                style={{ tableLayout: "fixed", borderCollapse: "collapse", minWidth: "760px", width: "100%" }}
                 className="text-xs"
               >
                 <colgroup>
@@ -489,7 +490,7 @@ export default function AdminView() {
                             <td
                               key={`${day}-${col}`}
                               rowSpan={span}
-                              style={{ overflow: "hidden", maxWidth: "64px" }}
+                              style={{ overflow: "hidden" }}
                               className={`p-0.5 align-top border-b border-gray-100 ${col === 2 && di < 6 ? "border-r border-gray-200" : col < 2 ? "border-r border-gray-100" : ""} ${!record ? "cursor-pointer hover:bg-emerald-50/50 group" : ""}`}
                               onClick={
                                 !record
@@ -520,17 +521,6 @@ export default function AdminView() {
                   ))}
                 </tbody>
               </table>
-            )}
-            {currentWeek && allTimes.length === 0 && (
-              <div className="text-center py-12 text-gray-400 text-sm">
-                No bookings this week.{" "}
-                <button
-                  onClick={() => setFormState({ mode: "add" })}
-                  className="text-emerald-600 underline"
-                >
-                  Add one
-                </button>
-              </div>
             )}
           </div>
         </div>
@@ -599,6 +589,8 @@ function AdminCard({
   const bg =
     r.remark === "ยังไม่มีนักเรียน"
       ? "bg-red-100 border-red-400"
+      : r.remark === "ยังไม่ได้จ่ายเงิน"
+      ? "bg-orange-50 border-orange-300"
       : r.remark === "จองสนามเอง" && !r.coach
       ? "bg-purple-100 border-purple-400"
       : r.client?.toLowerCase().includes("parent")
@@ -616,12 +608,19 @@ function AdminCard({
       style={{ height: `${span * ROW_H - 2}px` }}
     >
       <div className="px-1 pt-1 pb-0.5 overflow-hidden">
-        {r.court && (
-          <span className="inline-block rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight mb-0.5">
-            C{r.court}
-          </span>
-        )}
-        <div className="font-medium text-[9px] leading-tight text-gray-800 break-words w-full overflow-hidden" style={{ wordBreak: "break-word" }}>
+        <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
+          {r.court && (
+            <span className="inline-block rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight">
+              C{r.court}
+            </span>
+          )}
+          {r.students > 0 && (
+            <span className="inline-block rounded bg-indigo-100 text-indigo-700 text-[9px] font-bold px-1 leading-tight">
+              {r.students}s
+            </span>
+          )}
+        </div>
+        <div className={`font-medium text-[9px] leading-tight break-words w-full overflow-hidden ${r.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-800"}`} style={{ wordBreak: "break-word" }}>
           {r.client || <span className="text-red-400 italic">–</span>}
         </div>
         {r.coach ? (
@@ -633,7 +632,8 @@ function AdminCard({
         )}
         {r.remark && (
           <div className={`mt-0.5 rounded px-1 text-[9px] font-medium leading-tight truncate max-w-full ${
-            r.remark === "ยังไม่มีนักเรียน" ? "bg-red-200 text-red-700"
+            r.remark === "ยังไม่ได้จ่ายเงิน" ? "bg-orange-100 text-orange-600"
+            : r.remark === "ยังไม่มีนักเรียน" ? "bg-red-200 text-red-700"
             : r.remark === "จองสนามเอง" ? "bg-purple-200 text-purple-700"
             : r.remark === "ขายสนาม" ? "bg-amber-200 text-amber-700"
             : "bg-gray-200 text-gray-600"
