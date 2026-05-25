@@ -348,7 +348,7 @@ function BookingCard({
             </span>
           )}
         </div>
-        <div className={`font-semibold text-[11px] leading-tight truncate w-full ${r.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-800"}`}>
+        <div className={`font-medium text-[9px] leading-tight truncate w-full ${r.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-800"}`}>
           {r.client || <span className="text-red-400 italic">–</span>}
         </div>
         {r.coach ? (
