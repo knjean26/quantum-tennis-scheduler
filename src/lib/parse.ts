@@ -15,7 +15,8 @@ export interface BookingRecord {
   coach: string;
   weekStart: string;
   weekLabel: string;
-  remark: string;  // BH = col 59
+  remark: string;     // BH = col 59
+  confirmed: boolean; // BI = col 60
 }
 
 export interface AdminBooking extends BookingRecord {
@@ -106,6 +107,7 @@ export function parseRecords(rows: string[][]): BookingRecord[] {
       weekStart: toISO(weekMon),
       weekLabel: weekLabel(weekMon),
       remark: (row[59] ?? "").trim(),
+      confirmed: (row[60] ?? "").trim().toLowerCase() === "confirmed",
     });
   }
   return records;
@@ -151,6 +153,7 @@ export function parseAdminBookings(
       weekStart: toISO(weekMon),
       weekLabel: weekLabel(weekMon),
       remark: (row[59] ?? "").trim(),
+      confirmed: (row[60] ?? "").trim().toLowerCase() === "confirmed",
     });
   }
   return result;

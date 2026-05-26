@@ -99,7 +99,7 @@ const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
 );
 
 // Col index → value map for "edit" API call (only columns we manage)
-const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 43, 45, 46, 47, 48, 49, 50, 52, 59];
+const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 43, 45, 46, 47, 48, 49, 50, 52, 59, 60];
 
 function formDataToRow(data: BookingFormData): string[] {
   const row = Array(60).fill("");
@@ -126,6 +126,7 @@ function formDataToRow(data: BookingFormData): string[] {
   row[50] = data.courtFee;
   row[52] = data.grandTotal;
   row[59] = data.remark;
+  row[60] = data.confirmed ? "Confirmed" : "";
   return row;
 }
 
@@ -639,6 +640,11 @@ function AdminCard({
             : "bg-gray-200 text-gray-600"
           }`}>
             {r.remark}
+          </div>
+        )}
+        {r.confirmed && (
+          <div className="mt-0.5 rounded px-1 text-[9px] font-medium leading-tight bg-green-100 text-green-800">
+            Confirmed
           </div>
         )}
       </div>

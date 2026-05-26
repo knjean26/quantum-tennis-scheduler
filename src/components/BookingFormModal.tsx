@@ -23,6 +23,7 @@ export interface BookingFormData {
   courtFee: string;
   grandTotal: string;
   remark: string;
+  confirmed: boolean;
 }
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -124,6 +125,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
       courtFee: normalizeCurrency(booking.courtFee),
       grandTotal: normalizeCurrency(booking.grandTotal),
       remark: booking.remark ?? "",
+      confirmed: booking.confirmed ?? false,
     };
   }
   return {
@@ -145,6 +147,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
     courtFee: "",
     grandTotal: "",
     remark: "",
+    confirmed: false,
   };
 }
 
@@ -519,6 +522,17 @@ export default function BookingFormModal({
                 className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 accent-amber-600"
               />
               <span className="text-sm text-gray-700">ขายสนาม — court sale</span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.confirmed}
+                onChange={(e) => setForm((prev) => ({ ...prev, confirmed: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 accent-green-700"
+              />
+              <span className={`text-sm font-medium ${form.confirmed ? "text-green-700" : "text-gray-700"}`}>
+                Already paid — confirmed with both student and court
+              </span>
             </label>
           </section>
 
