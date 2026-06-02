@@ -34,7 +34,7 @@ export async function getBookingRows(): Promise<string[][]> {
   const sheets = google.sheets({ version: "v4", auth });
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${SHEET_NAME}'!A1:BH2000`,
+    range: `'${SHEET_NAME}'!A1:BI2000`,
   });
   const all = (res.data.values ?? []) as string[][];
   return all.slice(1);
@@ -45,7 +45,7 @@ export async function getAdminRows(): Promise<{ rowIndex: number; values: string
   const sheets = google.sheets({ version: "v4", auth });
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${SHEET_NAME}'!A1:BH2000`,
+    range: `'${SHEET_NAME}'!A1:BI2000`,
   });
   const all = (res.data.values ?? []) as string[][];
   return all.slice(1).map((values, i) => ({ rowIndex: i + 2, values }));

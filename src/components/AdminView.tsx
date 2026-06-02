@@ -98,11 +98,11 @@ const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-// Col index → value map for "edit" API call (only columns we manage)
-const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 43, 45, 46, 47, 48, 49, 50, 52, 59, 60];
+// Price/fee columns (7,9,46-50,52) have Google Sheets formulas — never overwrite them.
+const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 8, 43, 45, 59, 60];
 
 function formDataToRow(data: BookingFormData): string[] {
-  const row = Array(60).fill("");
+  const row = Array(61).fill("");
   if (data.date) {
     const [y, mo, d] = data.date.split("-");
     row[0] = `${d}/${mo}/${y}`;
@@ -114,17 +114,9 @@ function formDataToRow(data: BookingFormData): string[] {
   row[4] = data.court;
   row[5] = data.classType;
   row[6] = data.classValue;
-  row[7] = data.price;
   row[8] = data.students;
-  row[9] = data.totalPrice;
   row[43] = data.client;
   row[45] = data.coachName;
-  row[46] = data.coachFee;
-  row[47] = data.coachFeeGroup;
-  row[48] = data.aceFee;
-  row[49] = data.quantumFee;
-  row[50] = data.courtFee;
-  row[52] = data.grandTotal;
   row[59] = data.remark;
   row[60] = data.confirmed ? "Confirmed" : "";
   return row;
