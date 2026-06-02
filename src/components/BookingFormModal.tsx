@@ -32,7 +32,7 @@ const TIME_SLOTS = Array.from({ length: 18 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-const DROPDOWN_REMARKS = ["ยังไม่ได้จ่ายเงิน", "ยังไม่มีนักเรียน", "Cancel", "Payment Requested", "DONE"];
+const DROPDOWN_REMARKS = ["Cancel", "Payment Requested", "DONE"];
 
 const PRIVATE_CLASSES = ["Senior Head Coach", "Senior Coach", "Coach", "Coach-TPSP", "Hitting Partner"];
 const FOREIGNER_CLASSES = ["Senior Head Coach (eng)", "Senior Coach (eng/jpn)", "Hitting Partner (eng/jpn)"];
@@ -491,16 +491,12 @@ export default function BookingFormModal({
               value={DROPDOWN_REMARKS.includes(form.remark) ? form.remark : ""}
               onChange={(e) => set("remark", e.target.value)}
               className={`w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
-                form.remark === "ยังไม่ได้จ่ายเงิน" ? "border-orange-400 bg-orange-50 text-orange-700"
-                : form.remark === "ยังไม่มีนักเรียน" ? "border-red-400 bg-red-50 text-red-700"
-                : form.remark === "Cancel" ? "border-red-500 bg-red-100 text-red-800 font-semibold"
+                form.remark === "Cancel" ? "border-red-500 bg-red-100 text-red-800 font-semibold"
                 : form.remark === "Payment Requested" ? "border-yellow-400 bg-yellow-50 text-yellow-800"
                 : "border-gray-300"
               }`}
             >
-              <option value="">Normal</option>
-              <option value="ยังไม่ได้จ่ายเงิน">ยังไม่ได้จ่ายเงิน — not yet paid</option>
-              <option value="ยังไม่มีนักเรียน">ยังไม่มีนักเรียน — student cancelled</option>
+              <option value="">—</option>
               <option value="Cancel">Cancel</option>
               <option value="Payment Requested">Payment Requested</option>
               <option value="DONE">DONE</option>
@@ -522,17 +518,6 @@ export default function BookingFormModal({
                 className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 accent-amber-600"
               />
               <span className="text-sm text-gray-700">ขายสนาม — court sale</span>
-            </label>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={form.confirmed}
-                onChange={(e) => setForm((prev) => ({ ...prev, confirmed: e.target.checked }))}
-                className="w-4 h-4 rounded border-gray-300 accent-green-700"
-              />
-              <span className={`text-sm font-medium ${form.confirmed ? "text-green-700" : "text-gray-700"}`}>
-                Already paid — confirmed with both student and court
-              </span>
             </label>
           </section>
 
