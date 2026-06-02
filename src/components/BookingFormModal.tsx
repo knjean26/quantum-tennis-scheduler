@@ -32,6 +32,8 @@ const TIME_SLOTS = Array.from({ length: 18 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
+const DROPDOWN_REMARKS = ["ยังไม่ได้จ่ายเงิน", "ยังไม่มีนักเรียน", "Cancel", "Payment Requested", "DONE"];
+
 const PRIVATE_CLASSES = ["Senior Head Coach", "Senior Coach", "Coach", "Coach-TPSP", "Hitting Partner"];
 const FOREIGNER_CLASSES = ["Senior Head Coach (eng)", "Senior Coach (eng/jpn)", "Hitting Partner (eng/jpn)"];
 const GROUP_CLASSES = ["Red Ball (Tennis 10s)", "Junior Class", "Adult Class"];
@@ -485,17 +487,24 @@ export default function BookingFormModal({
           {/* Status flags */}
           <section className="space-y-2">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</h3>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={form.remark === "ยังไม่ได้จ่ายเงิน"}
-                onChange={(e) => set("remark", e.target.checked ? "ยังไม่ได้จ่ายเงิน" : "")}
-                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500 accent-orange-500"
-              />
-              <span className={`text-sm font-medium ${form.remark === "ยังไม่ได้จ่ายเงิน" ? "text-orange-500" : "text-gray-700"}`}>
-                ยังไม่ได้จ่ายเงิน — not yet paid
-              </span>
-            </label>
+            <select
+              value={DROPDOWN_REMARKS.includes(form.remark) ? form.remark : ""}
+              onChange={(e) => set("remark", e.target.value)}
+              className={`w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                form.remark === "ยังไม่ได้จ่ายเงิน" ? "border-orange-400 bg-orange-50 text-orange-700"
+                : form.remark === "ยังไม่มีนักเรียน" ? "border-red-400 bg-red-50 text-red-700"
+                : form.remark === "Cancel" ? "border-red-500 bg-red-100 text-red-800 font-semibold"
+                : form.remark === "Payment Requested" ? "border-yellow-400 bg-yellow-50 text-yellow-800"
+                : "border-gray-300"
+              }`}
+            >
+              <option value="">Normal</option>
+              <option value="ยังไม่ได้จ่ายเงิน">ยังไม่ได้จ่ายเงิน — not yet paid</option>
+              <option value="ยังไม่มีนักเรียน">ยังไม่มีนักเรียน — student cancelled</option>
+              <option value="Cancel">Cancel</option>
+              <option value="Payment Requested">Payment Requested</option>
+              <option value="DONE">DONE</option>
+            </select>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -504,15 +513,6 @@ export default function BookingFormModal({
                 className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 accent-purple-600"
               />
               <span className="text-sm text-gray-700">จองสนามเอง — student booked court (court fee = 0)</span>
-            </label>
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={form.remark === "ยังไม่มีนักเรียน"}
-                onChange={(e) => set("remark", e.target.checked ? "ยังไม่มีนักเรียน" : "")}
-                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 accent-red-600"
-              />
-              <span className="text-sm text-gray-700">ยังไม่มีนักเรียน — student cancelled</span>
             </label>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input

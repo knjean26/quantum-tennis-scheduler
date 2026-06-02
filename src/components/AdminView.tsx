@@ -580,10 +580,14 @@ function AdminCard({
 }) {
   const cs = coachStyle(r.coach, coachIndexMap);
   const bg =
-    r.remark === "ยังไม่มีนักเรียน"
+    r.remark === "Cancel"
+      ? "bg-red-200 border-red-500"
+      : r.remark === "ยังไม่มีนักเรียน"
       ? "bg-red-100 border-red-400"
       : r.remark === "ยังไม่ได้จ่ายเงิน"
       ? "bg-orange-50 border-orange-300"
+      : r.remark === "Payment Requested"
+      ? "bg-yellow-50 border-yellow-400"
       : r.remark === "จองสนามเอง" && !r.coach
       ? "bg-purple-100 border-purple-400"
       : r.client?.toLowerCase().includes("parent")
@@ -603,8 +607,8 @@ function AdminCard({
       <div className="px-1 pt-1 pb-0.5 overflow-hidden">
         <div className="flex items-center gap-0.5 mb-0.5 flex-wrap">
           {r.court && (
-            <span className="inline-block rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight">
-              C{r.court}
+            <span className="inline-flex items-center gap-0.5 rounded bg-gray-700 text-white text-[9px] font-bold px-1 leading-tight">
+              C{r.court}{r.remark === "DONE" && <span className="text-green-300">✓</span>}
             </span>
           )}
           {r.students > 0 && (
@@ -623,10 +627,12 @@ function AdminCard({
         ) : (
           <div className="mt-0.5 rounded px-1 text-[9px] font-medium leading-tight bg-gray-300 text-gray-600">–</div>
         )}
-        {r.remark && (
+        {r.remark && r.remark !== "DONE" && (
           <div className={`mt-0.5 rounded px-1 text-[9px] font-medium leading-tight truncate max-w-full ${
             r.remark === "ยังไม่ได้จ่ายเงิน" ? "bg-orange-100 text-orange-600"
             : r.remark === "ยังไม่มีนักเรียน" ? "bg-red-200 text-red-700"
+            : r.remark === "Cancel" ? "bg-red-300 text-red-800"
+            : r.remark === "Payment Requested" ? "bg-yellow-100 text-yellow-700"
             : r.remark === "จองสนามเอง" ? "bg-purple-200 text-purple-700"
             : r.remark === "ขายสนาม" ? "bg-amber-200 text-amber-700"
             : "bg-gray-200 text-gray-600"
