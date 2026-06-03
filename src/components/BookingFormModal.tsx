@@ -32,7 +32,7 @@ const TIME_SLOTS = Array.from({ length: 18 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-const DROPDOWN_REMARKS = ["Cancel", "Payment Requested", "DONE"];
+const DROPDOWN_REMARKS = ["Cancel", "Payment Requested", "Paid", "Court Only", "DONE"];
 
 const PRIVATE_CLASSES = ["Senior Head Coach", "Senior Coach", "Coach", "Coach-TPSP", "Hitting Partner"];
 const FOREIGNER_CLASSES = ["Senior Head Coach (eng)", "Senior Coach (eng/jpn)", "Hitting Partner (eng/jpn)"];
@@ -493,12 +493,16 @@ export default function BookingFormModal({
               className={`w-full border rounded-md px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
                 form.remark === "Cancel" ? "border-red-500 bg-red-100 text-red-800 font-semibold"
                 : form.remark === "Payment Requested" ? "border-yellow-400 bg-yellow-50 text-yellow-800"
+                : form.remark === "Paid" ? "border-green-500 bg-green-50 text-green-800"
+                : form.remark === "Court Only" ? "border-purple-500 bg-purple-50 text-purple-800"
                 : "border-gray-300"
               }`}
             >
               <option value="">—</option>
               <option value="Cancel">Cancel</option>
               <option value="Payment Requested">Payment Requested</option>
+              <option value="Paid">Paid</option>
+              <option value="Court Only">Court Only</option>
               <option value="DONE">DONE</option>
             </select>
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
