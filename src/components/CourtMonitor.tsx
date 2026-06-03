@@ -142,34 +142,46 @@ export default function CourtMonitor({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {sorted.map((r, i) => (
-              <tr key={i} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap font-medium">
-                  {formatDate(r.date)}
-                </td>
-                <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
-                  {r.dayName.slice(0, 3)}
-                </td>
-                <td className="px-4 py-2.5 font-mono text-xs text-gray-600 whitespace-nowrap">
-                  {r.startTime}–{r.endTime}
-                </td>
-                <td className="px-4 py-2.5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-xs font-semibold ${
-                      COURT_COLORS[r.court] ?? "bg-gray-50 text-gray-600 border-gray-200"
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${COURT_DOT[r.court] ?? "bg-gray-400"}`} />
-                    Court {r.court}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-gray-600">{r.classType || "–"}</td>
-                <td className="px-4 py-2.5 text-gray-800">{r.client || "–"}</td>
-                <td className="px-4 py-2.5 text-gray-700">{r.coach || "–"}</td>
-                <td className="px-4 py-2.5 text-center text-gray-700">{r.students || "–"}</td>
-                <td className="px-4 py-2.5 text-center font-medium text-gray-700">{r.duration}</td>
-              </tr>
-            ))}
+            {sorted.map((r, i) => {
+              const cancelled = r.remark === "Cancel";
+              return (
+                <tr key={i} className={`hover:bg-gray-50 transition-colors ${cancelled ? "bg-red-50 opacity-70" : ""}`}>
+                  <td className={`px-4 py-2.5 whitespace-nowrap font-medium ${cancelled ? "line-through text-gray-400" : "text-gray-700"}`}>
+                    {formatDate(r.date)}
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
+                    {r.dayName.slice(0, 3)}
+                  </td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-gray-600 whitespace-nowrap">
+                    {r.startTime}–{r.endTime}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-xs font-semibold ${
+                        COURT_COLORS[r.court] ?? "bg-gray-50 text-gray-600 border-gray-200"
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${COURT_DOT[r.court] ?? "bg-gray-400"}`} />
+                      Court {r.court}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-600">{r.classType || "–"}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cancelled ? "text-gray-400 line-through" : "text-gray-800"}>{r.client || "–"}</span>
+                      {cancelled && (
+                        <span className="inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-600 border border-red-200 whitespace-nowrap">
+                          Cancelled
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-700">{r.coach || "–"}</td>
+                  <td className="px-4 py-2.5 text-center text-gray-700">{r.students || "–"}</td>
+                  <td className="px-4 py-2.5 text-center font-medium text-gray-700">{r.duration}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {sorted.length === 0 && (

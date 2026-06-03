@@ -275,16 +275,21 @@ export default function BookingFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.classValue, form.coachName, form.students, duration, coachRateCard]);
 
-  // CourtFee = ฿650/hr, 0 if student booked court themselves
+  // CourtFee = ฿650/hr before 16:00, ฿750/hr at 16:00+, 0 if student booked court themselves
   useEffect(() => {
     if (form.remark === "จองสนามเอง") {
       set("courtFee", "0");
     } else {
       const dur = duration > 0 ? duration : 1;
-      set("courtFee", String(Math.round(650 * dur)));
+      const startHour = form.startTime ? parseInt(form.startTime.split(":")[0]) : 6;
+      let fee = 0;
+      for (let i = 0; i < dur; i++) {
+        fee += (startHour + i) >= 16 ? 750 : 650;
+      }
+      set("courtFee", String(fee));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duration, form.remark]);
+  }, [duration, form.remark, form.startTime]);
 
   // QuantumFee = TotalPrice - CoachFee - AceFee
   useEffect(() => {

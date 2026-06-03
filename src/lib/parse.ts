@@ -172,6 +172,37 @@ export function groupByWeek<T extends BookingRecord>(
   return Array.from(map.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
+// Ensures every Monday-anchored week of `year` appears in the list (with empty records if no bookings).
+export function withFullYearWeeks<T extends BookingRecord>(
+  bookingWeeks: { weekStart: string; weekLabel: string; records: T[] }[],
+  year: number
+): { weekStart: string; weekLabel: string; records: T[] }[] {
+  const existingMap = new Map(bookingWeeks.map((w) => [w.weekStart, w]));
+  const seen = new Set<string>();
+  const result: { weekStart: string; weekLabel: string; records: T[] }[] = [];
+
+  // Find the Monday on or before Jan 1 of `year`
+  const jan1 = new Date(year, 0, 1);
+  const dow = jan1.getDay();
+  const toMon = dow === 0 ? -6 : 1 - dow;
+  const d = new Date(year, 0, 1 + toMon);
+  const yearEnd = new Date(year, 11, 31);
+
+  while (d <= yearEnd) {
+    const iso = toISO(d);
+    seen.add(iso);
+    result.push(existingMap.get(iso) ?? { weekStart: iso, weekLabel: weekLabel(new Date(d)), records: [] as T[] });
+    d.setDate(d.getDate() + 7);
+  }
+
+  // Keep booking weeks that fall outside the generated year range (previous years, etc.)
+  for (const w of bookingWeeks) {
+    if (!seen.has(w.weekStart)) result.push(w);
+  }
+
+  return result.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+}
+
 export function totalCourtHours(records: BookingRecord[]): number {
   return records
     .filter((r) => isValidCourt(r.court))

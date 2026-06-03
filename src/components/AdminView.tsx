@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { parseAdminBookings, groupByWeek } from "@/lib/parse";
+import { parseAdminBookings, groupByWeek, withFullYearWeeks } from "@/lib/parse";
 import type { AdminBooking } from "@/lib/parse";
 import BookingFormModal from "./BookingFormModal";
 import type { BookingFormData } from "./BookingFormModal";
@@ -172,7 +172,10 @@ export default function AdminView() {
     [adminData]
   );
 
-  const weeks = useMemo(() => groupByWeek(parsedBookings), [parsedBookings]);
+  const weeks = useMemo(
+    () => withFullYearWeeks(groupByWeek(parsedBookings), new Date().getFullYear()),
+    [parsedBookings]
+  );
 
   useEffect(() => {
     if (!weeks.length) return;
@@ -334,7 +337,7 @@ export default function AdminView() {
     await loadData();
   }
 
-  if (loading) {
+  if (loading && !adminData) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-400">Loading admin data…</div>
     );

@@ -1,5 +1,5 @@
 import { getBookingRows } from "@/lib/sheets";
-import { parseRecords, groupByWeek, isValidCourt } from "@/lib/parse";
+import { parseRecords, groupByWeek, isValidCourt, withFullYearWeeks } from "@/lib/parse";
 import CourtMonitor from "@/components/CourtMonitor";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default async function CourtsPage() {
       r.remark !== "ขายสนาม" &&
       r.classType !== "Parent Class"
   );
-  const weeks = groupByWeek(courtRecords);
+  const weeks = withFullYearWeeks(groupByWeek(courtRecords), new Date().getFullYear());
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
