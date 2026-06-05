@@ -6,6 +6,7 @@ import BookingFormModal from "./BookingFormModal";
 import type { BookingFormData } from "./BookingFormModal";
 import CopyBookingModal from "./CopyBookingModal";
 import RateCardEditor from "./RateCardEditor";
+import StudentMonitor from "./StudentMonitor";
 
 const ROW_H = 60;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -134,7 +135,7 @@ interface AdminData {
   coachRateCard: string[][];
 }
 
-type Tab = "schedule" | "ratecard" | "coachratecard";
+type Tab = "schedule" | "ratecard" | "coachratecard" | "students";
 type FormState =
   | { mode: "add"; prefill?: { date?: string; startTime?: string } }
   | { mode: "edit"; booking: AdminBooking }
@@ -354,6 +355,7 @@ export default function AdminView() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "schedule", label: "Schedule" },
+    { key: "students", label: "Students" },
     { key: "ratecard", label: "Rate Card" },
     { key: "coachratecard", label: "Coach Rate Card" },
   ];
@@ -520,6 +522,11 @@ export default function AdminView() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Students tab */}
+      {activeTab === "students" && (
+        <StudentMonitor bookings={parsedBookings} />
       )}
 
       {/* Rate Card tab */}
