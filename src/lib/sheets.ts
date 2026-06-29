@@ -51,7 +51,9 @@ export async function getAdminRows(): Promise<{ rowIndex: number; values: string
   return all.slice(1).map((values, i) => ({ rowIndex: i + 2, values }));
 }
 
-export async function appendBookingRow(values: string[]): Promise<number> {
+export async function appendBookingByFieldMap(
+  fieldMap: Record<number, string>
+): Promise<number> {
   const auth = getAuth(true);
   const sheets = google.sheets({ version: "v4", auth });
 
@@ -61,19 +63,21 @@ export async function appendBookingRow(values: string[]): Promise<number> {
     range: `'${SHEET_NAME}'!A:A`,
   });
   const colA = (colARes.data.values ?? []) as string[][];
-  let rowIndex = colA.length + 1; // default: first row after all data
+  let rowIndex = colA.length + 1;
   for (let i = 1; i < colA.length; i++) {
     if (!colA[i]?.[0]?.trim()) {
-      rowIndex = i + 1; // i is 0-based; sheet rows are 1-based
+      rowIndex = i + 1;
       break;
     }
   }
 
-  await sheets.spreadsheets.values.update({
+  const data = Object.entries(fieldMap).map(([colStr, value]) => ({
+    range: `'${SHEET_NAME}'!${colToA1(parseInt(colStr))}${rowIndex}`,
+    values: [[value]],
+  }));
+  await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${SHEET_NAME}'!A${rowIndex}`,
-    valueInputOption: "USER_ENTERED",
-    requestBody: { values: [values] },
+    requestBody: { valueInputOption: "USER_ENTERED", data },
   });
 
   return rowIndex;

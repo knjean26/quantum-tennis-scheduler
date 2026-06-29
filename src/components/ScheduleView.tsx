@@ -38,12 +38,12 @@ type GridCell =
   | "spanned"
   | { record: BookingRecord; span: number };
 
-// Assign up to 3 sub-columns per time slot, with rowspan for multi-hour bookings
+// Assign up to 4 sub-columns per time slot, with rowspan for multi-hour bookings
 function buildDayGrid(records: BookingRecord[], allTimes: string[]): GridCell[][] {
   const n = allTimes.length;
   const timeIndex = new Map(allTimes.map((t, i) => [t, i]));
-  // grid[timeIdx][subCol 0..2]
-  const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null]);
+  // grid[timeIdx][subCol 0..3]
+  const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null, null]);
 
   const sorted = [...records].sort((a, b) => {
     const tc = a.startTime.localeCompare(b.startTime);
@@ -56,7 +56,7 @@ function buildDayGrid(records: BookingRecord[], allTimes: string[]): GridCell[][
     const span = Math.max(1, Math.ceil(record.duration));
     const slots = Array.from({ length: span }, (_, i) => startIdx + i).filter((i) => i < n);
 
-    for (let col = 0; col < 3; col++) {
+    for (let col = 0; col < 4; col++) {
       if (slots.every((i) => grid[i][col] === null)) {
         grid[startIdx][col] = { record, span: slots.length };
         for (let i = 1; i < slots.length; i++) grid[startIdx + i][col] = "spanned";
@@ -236,9 +236,10 @@ export default function ScheduleView({
           <colgroup>
             <col style={{ width: "52px" }} />
             {DAYS.flatMap((_, di) => [
-              <col key={`${di}-0`} style={{ width: "80px" }} />,
-              <col key={`${di}-1`} style={{ width: "80px" }} />,
-              <col key={`${di}-2`} style={{ width: "80px" }} />,
+              <col key={`${di}-0`} style={{ width: "72px" }} />,
+              <col key={`${di}-1`} style={{ width: "72px" }} />,
+              <col key={`${di}-2`} style={{ width: "72px" }} />,
+              <col key={`${di}-3`} style={{ width: "72px" }} />,
             ])}
           </colgroup>
           <thead>
@@ -250,11 +251,11 @@ export default function ScheduleView({
               >
                 <span className="text-sm font-bold text-gray-500">Time</span>
               </th>
-              {/* Day headers with colspan=3 */}
+              {/* Day headers with colspan=4 */}
               {DAYS.map((day) => (
                 <th
                   key={day}
-                  colSpan={3}
+                  colSpan={4}
                   style={{ position: "sticky", top: 0, zIndex: 20 }}
                   className="bg-gray-50 border-b border-r border-gray-200 text-center py-2 px-1"
                 >
@@ -277,10 +278,10 @@ export default function ScheduleView({
                     <span className="text-[10px] text-gray-400">{nextHour(time)}</span>
                   </div>
                 </td>
-                {/* Day cells: 3 sub-cols each */}
+                {/* Day cells: 4 sub-cols each */}
                 {DAYS.map((day, di) => {
                   const dayGrid = dayGrids[day];
-                  return [0, 1, 2].map((col) => {
+                  return [0, 1, 2, 3].map((col) => {
                     const cell = dayGrid[timeIdx]?.[col];
                     if (cell === "spanned") return null;
                     const booking = cell ?? null;
@@ -291,7 +292,7 @@ export default function ScheduleView({
                         key={`${day}-${col}`}
                         rowSpan={span}
                         style={{ overflow: "hidden" }}
-                        className={`p-0.5 align-top border-b border-gray-100 ${col === 2 && di < 6 ? "border-r border-gray-200" : col < 2 ? "border-r border-gray-100" : ""}`}
+                        className={`p-0.5 align-top border-b border-gray-100 ${col === 3 && di < 6 ? "border-r border-gray-200" : col < 3 ? "border-r border-gray-100" : ""}`}
                       >
                         {record && (
                           <BookingCard

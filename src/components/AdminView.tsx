@@ -32,7 +32,7 @@ type GridCell = null | "spanned" | { record: AdminBooking; span: number };
 function buildGrid(records: AdminBooking[], allTimes: string[]): GridCell[][] {
   const n = allTimes.length;
   const timeIdx = new Map(allTimes.map((t, i) => [t, i]));
-  const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null]);
+  const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null, null]);
   const sorted = [...records].sort((a, b) => {
     const tc = a.startTime.localeCompare(b.startTime);
     return tc !== 0 ? tc : b.duration - a.duration;
@@ -42,7 +42,7 @@ function buildGrid(records: AdminBooking[], allTimes: string[]): GridCell[][] {
     if (si === undefined) continue;
     const span = Math.max(1, Math.ceil(record.duration));
     const slots = Array.from({ length: span }, (_, i) => si + i).filter((i) => i < n);
-    for (let col = 0; col < 3; col++) {
+    for (let col = 0; col < 4; col++) {
       if (slots.every((i) => grid[i][col] === null)) {
         grid[si][col] = { record, span: slots.length };
         for (let i = 1; i < slots.length; i++) grid[si + i][col] = "spanned";
@@ -99,7 +99,8 @@ const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-// Price/fee columns (7,9,46-50,52) have Google Sheets formulas — never overwrite them.
+// Columns with Google Sheets formulas — never write to these (H=7, J=9, AU-BA=46-52).
+const FORMULA_COLS = new Set([7, 9, 46, 47, 48, 49, 50, 51, 52]);
 const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 8, 43, 45, 59, 60];
 
 function formDataToRow(data: BookingFormData): string[] {
@@ -233,11 +234,11 @@ export default function AdminView() {
     setSaving(true);
     try {
       if (formState.mode === "add") {
-        const values = formDataToRow(data);
+        const fieldMap = formDataToFieldMap(data);
         const res = await fetch("/api/admin/booking", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ values }),
+          body: JSON.stringify({ fieldMap }),
         });
         if (!res.ok) throw new Error("Failed to add booking");
         // Store the booking's week so we navigate there after reload
@@ -290,15 +291,19 @@ export default function AdminView() {
     try {
       for (const date of dates) {
         const row = [...booking.raw];
-        while (row.length < 53) row.push("");
+        while (row.length < 61) row.push("");
         const [y, mo, d] = date.split("-");
         row[0] = `${d}/${mo}/${y}`;
         const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
         row[1] = dayNames[new Date(date + "T00:00:00").getDay()];
+        const fieldMap: Record<number, string> = {};
+        for (let i = 0; i < row.length; i++) {
+          if (!FORMULA_COLS.has(i)) fieldMap[i] = row[i] ?? "";
+        }
         const res = await fetch("/api/admin/booking", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ values: row }),
+          body: JSON.stringify({ fieldMap }),
         });
         if (!res.ok) throw new Error("Failed to copy booking");
       }
@@ -432,9 +437,10 @@ export default function AdminView() {
                 <colgroup>
                   <col style={{ width: "52px" }} />
                   {DAYS.flatMap((_, di) => [
-                    <col key={`${di}-0`} style={{ width: "80px" }} />,
-                    <col key={`${di}-1`} style={{ width: "80px" }} />,
-                    <col key={`${di}-2`} style={{ width: "80px" }} />,
+                    <col key={`${di}-0`} style={{ width: "72px" }} />,
+                    <col key={`${di}-1`} style={{ width: "72px" }} />,
+                    <col key={`${di}-2`} style={{ width: "72px" }} />,
+                    <col key={`${di}-3`} style={{ width: "72px" }} />,
                   ])}
                 </colgroup>
                 <thead>
@@ -448,7 +454,7 @@ export default function AdminView() {
                     {DAYS.map((day) => (
                       <th
                         key={day}
-                        colSpan={3}
+                        colSpan={4}
                         style={{ position: "sticky", top: 0, zIndex: 20 }}
                         className="bg-gray-50 border-b border-r border-gray-200 text-center py-2 px-1"
                       >
@@ -478,7 +484,7 @@ export default function AdminView() {
                       </td>
                       {DAYS.map((day, di) => {
                         const dayGrid = dayGrids[day] ?? [];
-                        return [0, 1, 2].map((col) => {
+                        return [0, 1, 2, 3].map((col) => {
                           const cell = dayGrid[timeIdx]?.[col];
                           if (cell === "spanned") return null;
                           const booking = cell ?? null;
@@ -489,7 +495,7 @@ export default function AdminView() {
                               key={`${day}-${col}`}
                               rowSpan={span}
                               style={{ overflow: "hidden" }}
-                              className={`p-0.5 align-top border-b border-gray-100 ${col === 2 && di < 6 ? "border-r border-gray-200" : col < 2 ? "border-r border-gray-100" : ""} ${!record ? "cursor-pointer hover:bg-emerald-50/50 group" : ""}`}
+                              className={`p-0.5 align-top border-b border-gray-100 ${col === 3 && di < 6 ? "border-r border-gray-200" : col < 3 ? "border-r border-gray-100" : ""} ${!record ? "cursor-pointer hover:bg-emerald-50/50 group" : ""}`}
                               onClick={
                                 !record
                                   ? () => {

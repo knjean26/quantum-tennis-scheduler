@@ -35,14 +35,13 @@ const TIME_SLOTS = Array.from({ length: 18 }, (_, i) =>
 const DROPDOWN_REMARKS = ["Cancel", "Payment Requested", "Paid", "Court Only", "DONE"];
 
 const PRIVATE_CLASSES = ["Senior Head Coach", "Senior Coach", "Coach", "Coach-TPSP", "Hitting Partner"];
-const FOREIGNER_CLASSES = ["Senior Head Coach (eng)", "Senior Coach (eng/jpn)", "Hitting Partner (eng/jpn)"];
 const GROUP_CLASSES = ["Red Ball (Tennis 10s)", "Junior Class", "Adult Class"];
 const STA_CLASSES = ["Parent Class", "ECA"];
 
 function getClassOptions(classType: string): string[] {
   const ct = classType.toLowerCase().trim();
   if (ct === "private") return PRIVATE_CLASSES;
-  if (ct.includes("foreign")) return FOREIGNER_CLASSES;
+  if (ct.includes("foreign")) return PRIVATE_CLASSES.map((c) => `${c} (eng)`);
   if (ct === "group") return GROUP_CLASSES;
   if (ct === "sta") return STA_CLASSES;
   return [];

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appendBookingRow, updateBookingColumns, deleteBookingRow } from "@/lib/sheets";
+import { appendBookingByFieldMap, updateBookingColumns, deleteBookingRow } from "@/lib/sheets";
 
 export async function POST(req: NextRequest) {
-  const { values } = await req.json();
-  const rowIndex = await appendBookingRow(values);
+  const { fieldMap } = await req.json();
+  const rowIndex = await appendBookingByFieldMap(fieldMap);
   return NextResponse.json({ rowIndex });
 }
 
