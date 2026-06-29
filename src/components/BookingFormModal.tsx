@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Combobox from "./Combobox";
 import { calcDuration } from "@/lib/parse";
 import type { AdminBooking } from "@/lib/parse";
@@ -179,6 +179,7 @@ export default function BookingFormModal({
 }) {
   const [form, setForm] = useState<BookingFormData>(() => initForm(booking, prefill));
   const [errors, setErrors] = useState<string[]>([]);
+  const coachChangedByUser = useRef(false);
 
   // Split-court state: only relevant for 2-hour bookings
   const [splitCourt, setSplitCourt] = useState(() => (booking?.court?.length ?? 0) >= 2);
@@ -223,9 +224,10 @@ export default function BookingFormModal({
     return fromRC.length > 0 ? fromRC : dropdowns.coaches;
   }, [coachRateCard, dropdowns.coaches]);
 
-  // Auto-detect class from selected coach
+  // Auto-detect class from selected coach — only when the user explicitly picks a coach
   useEffect(() => {
-    if (!form.coachName || coachRateCard.length < 2) return;
+    if (!form.coachName || coachRateCard.length < 2 || !coachChangedByUser.current) return;
+    coachChangedByUser.current = false;
     const cn = form.coachName.toLowerCase().trim();
     const classes = [...new Set(
       coachRateCard.slice(1)
@@ -233,7 +235,11 @@ export default function BookingFormModal({
         .map((r) => (r[0] ?? "").trim())
         .filter(Boolean)
     )];
-    if (classes.length > 0) set("classValue", classes[0]);
+    if (classes.length > 0) {
+      const base = classes[0];
+      const isEng = form.classType.toLowerCase().includes("foreign");
+      set("classValue", isEng ? `${base} (eng)` : base);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.coachName, coachRateCard]);
 
@@ -245,10 +251,12 @@ export default function BookingFormModal({
     }
   }, [duration]);
 
-  // Price from Rate Card
+  // Price from Rate Card — normalise Foreigner→Private and strip (eng) suffix for lookup
   useEffect(() => {
     const students = parseInt(form.students) || 1;
-    const p = lookupRateCard(rateCard, form.classType, form.classValue, students);
+    const lookupType = form.classType.toLowerCase().includes("foreign") ? "Private" : form.classType;
+    const lookupClass = form.classValue.replace(/\s*\(eng[^)]*\)/i, "").trim();
+    const p = lookupRateCard(rateCard, lookupType, lookupClass, students);
     if (p > 0) set("price", String(p));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.classType, form.classValue, form.students, rateCard]);
@@ -264,7 +272,9 @@ export default function BookingFormModal({
   // CoachFee + AceFee from Coach Rate Card
   useEffect(() => {
     const students = parseInt(form.students) || 1;
-    const result = lookupCoachRateCard(coachRateCard, form.classValue, form.coachName, students);
+    // Strip language suffix so "Coach (eng)" matches "Coach" in the rate card
+    const baseClassValue = form.classValue.replace(/\s*\(eng[^)]*\)/i, "").trim();
+    const result = lookupCoachRateCard(coachRateCard, baseClassValue, form.coachName, students);
     if (result) {
       const dur = duration > 0 ? duration : 1;
       set("coachFee", String(Math.round(result.coachFee * dur)));
@@ -428,7 +438,7 @@ export default function BookingFormModal({
               label="Coach Name"
               value={form.coachName}
               options={allCoachOptions}
-              onChange={(v) => set("coachName", v)}
+              onChange={(v) => { coachChangedByUser.current = true; set("coachName", v); }}
               placeholder="Search coach…"
             />
             <div className="grid grid-cols-2 gap-3">
