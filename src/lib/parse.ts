@@ -1,6 +1,6 @@
 // Columns: A=0 date, B=1 day, C=2 start, D=3 end, E=4 court, F=5 classType, G=6 class, H=7 price
 // I=8 students, J=9 totalPrice, AR=43 client, AT=45 coach, AU=46 coachFee, AV=47 coachFeeGroup
-// AW=48 aceFee, AX=49 quantumFee, AY=50 courtFee, BA=52 grandTotal
+// AW=48 aceFee, AX=49 quantumFee, AY=50 courtFee, BA=52 grandTotal, BJ=61 staCourt
 
 export interface BookingRecord {
   date: string;
@@ -17,6 +17,7 @@ export interface BookingRecord {
   weekLabel: string;
   remark: string;     // BH = col 59
   confirmed: boolean; // BI = col 60
+  staCourt: boolean;  // BJ = col 61
 }
 
 export interface AdminBooking extends BookingRecord {
@@ -108,6 +109,7 @@ export function parseRecords(rows: string[][]): BookingRecord[] {
       weekLabel: weekLabel(weekMon),
       remark: (row[59] ?? "").trim(),
       confirmed: (row[60] ?? "").trim().toLowerCase() === "confirmed",
+      staCourt: (row[61] ?? "").trim().toLowerCase() === "sta court",
     });
   }
   return records;
@@ -154,6 +156,7 @@ export function parseAdminBookings(
       weekLabel: weekLabel(weekMon),
       remark: (row[59] ?? "").trim(),
       confirmed: (row[60] ?? "").trim().toLowerCase() === "confirmed",
+      staCourt: (row[61] ?? "").trim().toLowerCase() === "sta court",
     });
   }
   return result;

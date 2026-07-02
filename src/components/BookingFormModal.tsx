@@ -24,6 +24,7 @@ export interface BookingFormData {
   grandTotal: string;
   remark: string;
   confirmed: boolean;
+  staCourt: boolean;
 }
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -127,6 +128,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
       grandTotal: normalizeCurrency(booking.grandTotal),
       remark: booking.remark ?? "",
       confirmed: booking.confirmed ?? false,
+      staCourt: booking.staCourt ?? false,
     };
   }
   return {
@@ -149,6 +151,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
     grandTotal: "",
     remark: "",
     confirmed: false,
+    staCourt: false,
   };
 }
 
@@ -536,6 +539,15 @@ export default function BookingFormModal({
                 className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 accent-amber-600"
               />
               <span className="text-sm text-gray-700">ขายสนาม — court sale</span>
+            </label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.staCourt}
+                onChange={(e) => setForm((prev) => ({ ...prev, staCourt: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 accent-sky-600"
+              />
+              <span className="text-sm text-gray-700">STA Court — exclude from Courts page</span>
             </label>
           </section>
 

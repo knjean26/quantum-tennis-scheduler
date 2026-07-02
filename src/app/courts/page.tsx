@@ -12,7 +12,8 @@ export default async function CourtsPage() {
       isValidCourt(r.court) &&
       r.remark !== "จองสนามเอง" &&
       r.remark !== "ขายสนาม" &&
-      r.classType !== "Parent Class"
+      r.classType !== "Parent Class" &&
+      !r.staCourt
   );
   const weeks = withFullYearWeeks(groupByWeek(courtRecords), new Date().getFullYear());
 

@@ -101,7 +101,7 @@ const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
 
 // Columns with Google Sheets formulas — never write to these (H=7, J=9, AU-BA=46-52).
 const FORMULA_COLS = new Set([7, 9, 46, 47, 48, 49, 50, 51, 52]);
-const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 8, 43, 45, 59, 60];
+const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 8, 43, 45, 59, 60, 61];
 
 function formDataToRow(data: BookingFormData): string[] {
   const row = Array(61).fill("");
@@ -121,6 +121,7 @@ function formDataToRow(data: BookingFormData): string[] {
   row[45] = data.coachName;
   row[59] = data.remark;
   row[60] = data.confirmed ? "Confirmed" : "";
+  row[61] = data.staCourt ? "STA Court" : "";
   return row;
 }
 
