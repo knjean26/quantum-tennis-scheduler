@@ -2,7 +2,7 @@ node_modules/
 .next/
 .env
 .env.local
-quantum-scheduler-eba040159b0f.json
+quantum-scheduler-*.json
 *.log
 
 .vercel

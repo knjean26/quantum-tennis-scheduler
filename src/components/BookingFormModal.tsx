@@ -137,7 +137,7 @@ function initForm(booking?: AdminBooking, prefill?: { date?: string; startTime?:
     startTime: prefill?.startTime ?? "",
     endTime: "",
     classType: "Private",
-    classValue: "",
+    classValue: "Coach",
     students: "1",
     price: "",
     totalPrice: "",
@@ -218,13 +218,14 @@ export default function BookingFormModal({
     return hardcoded.length > 0 ? hardcoded : classOptionsFromRC;
   }, [form.classType, classOptionsFromRC]);
 
-  // All coaches from Coach Rate Card (coach-first flow)
+  // All coaches from Coach Rate Card (coach-first flow), always including fixed coaches
   const allCoachOptions = useMemo(() => {
-    if (coachRateCard.length < 2) return dropdowns.coaches;
-    const fromRC = [...new Set(
-      coachRateCard.slice(1).map((r) => (r[1] ?? "").trim()).filter(Boolean)
-    )].sort();
-    return fromRC.length > 0 ? fromRC : dropdowns.coaches;
+    const FIXED_COACHES = ["Wison", "Moo"];
+    const fromRC = coachRateCard.length >= 2
+      ? [...new Set(coachRateCard.slice(1).map((r) => (r[1] ?? "").trim()).filter(Boolean))]
+      : [];
+    const base = fromRC.length > 0 ? fromRC : dropdowns.coaches;
+    return [...new Set([...base, ...FIXED_COACHES])].filter((c) => c !== "Son").sort();
   }, [coachRateCard, dropdowns.coaches]);
 
   // Auto-detect class from selected coach — only when the user explicitly picks a coach
@@ -450,8 +451,12 @@ export default function BookingFormModal({
                 <select
                   value={form.classType}
                   onChange={(e) => {
-                    set("classType", e.target.value);
-                    set("classValue", "");
+                    const newType = e.target.value;
+                    set("classType", newType);
+                    const ct = newType.toLowerCase().trim();
+                    if (ct === "private") set("classValue", "Coach");
+                    else if (ct.includes("foreign")) set("classValue", "Coach (eng)");
+                    else set("classValue", "");
                     set("coachName", "");
                   }}
                   className={field}

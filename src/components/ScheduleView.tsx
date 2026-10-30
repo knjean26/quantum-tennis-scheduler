@@ -1,6 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
-import type { BookingRecord } from "@/lib/parse";
+import type { BookingRecord, CoachHoliday, DayRemark } from "@/lib/parse";
 
 interface WeekGroup {
   weekStart: string;
@@ -11,20 +11,25 @@ interface WeekGroup {
 // Fixed row height — each 1-hour slot row; booking cards span multiples of this
 const ROW_H = 60; // px
 
-// 12-color palette for coaches
-const COACH_PALETTE = [
-  { bg: "bg-blue-500",    text: "text-white" },
-  { bg: "bg-emerald-500", text: "text-white" },
-  { bg: "bg-amber-500",   text: "text-white" },
-  { bg: "bg-purple-500",  text: "text-white" },
-  { bg: "bg-rose-500",    text: "text-white" },
+const COACH_COLOR_MAP: Record<string, { bg: string; text: string }> = {
+  "Earn":   { bg: "bg-red-500",     text: "text-white" },
+  "New":    { bg: "bg-pink-400",    text: "text-white" },
+  "Nuttie": { bg: "bg-blue-500",    text: "text-white" },
+  "Aoi":    { bg: "bg-indigo-700",  text: "text-white" },
+  "Eddy":   { bg: "bg-green-600",   text: "text-white" },
+  "Meel":   { bg: "bg-orange-500",  text: "text-white" },
+  "Wison":  { bg: "bg-amber-800",   text: "text-white" },
+  "Benz":   { bg: "bg-purple-500",  text: "text-white" },
+};
+const COACH_FALLBACK_PALETTE = [
   { bg: "bg-cyan-600",    text: "text-white" },
-  { bg: "bg-orange-500",  text: "text-white" },
-  { bg: "bg-indigo-500",  text: "text-white" },
-  { bg: "bg-pink-500",    text: "text-white" },
   { bg: "bg-teal-600",    text: "text-white" },
   { bg: "bg-lime-600",    text: "text-white" },
   { bg: "bg-fuchsia-600", text: "text-white" },
+  { bg: "bg-sky-500",     text: "text-white" },
+  { bg: "bg-violet-500",  text: "text-white" },
+  { bg: "bg-emerald-600", text: "text-white" },
+  { bg: "bg-rose-600",    text: "text-white" },
 ];
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -33,16 +38,21 @@ const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-type GridCell =
-  | null
-  | "spanned"
-  | { record: BookingRecord; span: number };
+type GridCellData =
+  | { kind: "booking"; record: BookingRecord; span: number }
+  | { kind: "remark"; remark: DayRemark; span: number };
+type GridCell = null | "spanned" | GridCellData;
 
-// Assign up to 4 sub-columns per time slot, with rowspan for multi-hour bookings
-function buildDayGrid(records: BookingRecord[], allTimes: string[]): GridCell[][] {
+function calcDuration(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const mins = eh * 60 + em - sh * 60 - sm;
+  return mins > 0 ? mins / 60 : 0;
+}
+
+function buildDayGrid(records: BookingRecord[], timedRemarks: DayRemark[], allTimes: string[]): GridCell[][] {
   const n = allTimes.length;
   const timeIndex = new Map(allTimes.map((t, i) => [t, i]));
-  // grid[timeIdx][subCol 0..3]
   const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null, null]);
 
   const sorted = [...records].sort((a, b) => {
@@ -55,15 +65,31 @@ function buildDayGrid(records: BookingRecord[], allTimes: string[]): GridCell[][
     if (startIdx === undefined) continue;
     const span = Math.max(1, Math.ceil(record.duration));
     const slots = Array.from({ length: span }, (_, i) => startIdx + i).filter((i) => i < n);
-
     for (let col = 0; col < 4; col++) {
       if (slots.every((i) => grid[i][col] === null)) {
-        grid[startIdx][col] = { record, span: slots.length };
+        grid[startIdx][col] = { kind: "booking", record, span: slots.length };
         for (let i = 1; i < slots.length; i++) grid[startIdx + i][col] = "spanned";
         break;
       }
     }
   }
+
+  for (const rem of timedRemarks) {
+    if (!rem.startTime || !rem.endTime) continue;
+    const si = timeIndex.get(rem.startTime);
+    if (si === undefined) continue;
+    const dur = calcDuration(rem.startTime, rem.endTime);
+    const span = Math.max(1, Math.ceil(dur));
+    const slots = Array.from({ length: span }, (_, i) => si + i).filter((i) => i < n);
+    for (let col = 0; col < 4; col++) {
+      if (slots.every((i) => grid[i][col] === null)) {
+        grid[si][col] = { kind: "remark", remark: rem, span: slots.length };
+        for (let k = 1; k < slots.length; k++) grid[si + k][col] = "spanned";
+        break;
+      }
+    }
+  }
+
   return grid;
 }
 
@@ -92,10 +118,12 @@ function getDayDates(weekStart: string): Record<string, string> {
   return result;
 }
 
-function coachStyle(coach: string, indexMap: Map<string, number>) {
+function coachStyle(coach: string) {
   if (!coach) return { bg: "bg-gray-400", text: "text-white" };
-  const idx = indexMap.get(coach) ?? 0;
-  return COACH_PALETTE[idx % COACH_PALETTE.length];
+  if (COACH_COLOR_MAP[coach]) return COACH_COLOR_MAP[coach];
+  let hash = 0;
+  for (let i = 0; i < coach.length; i++) hash = (hash * 31 + coach.charCodeAt(i)) & 0xffff;
+  return COACH_FALLBACK_PALETTE[hash % COACH_FALLBACK_PALETTE.length];
 }
 
 function cardBg(record: BookingRecord): string {
@@ -105,12 +133,30 @@ function cardBg(record: BookingRecord): string {
   return "bg-white border-gray-200";
 }
 
+function getDayISOs(weekStart: string): Record<string, string> {
+  const mon = new Date(weekStart + "T00:00:00");
+  const result: Record<string, string> = {};
+  DAYS.forEach((day, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    result[day] = `${y}-${mo}-${dd}`;
+  });
+  return result;
+}
+
 export default function ScheduleView({
   weeks,
   defaultWeek = 0,
+  holidays = [],
+  remarks = [],
 }: {
   weeks: WeekGroup[];
   defaultWeek?: number;
+  holidays?: CoachHoliday[];
+  remarks?: DayRemark[];
 }) {
   const [selectedWeek, setSelectedWeek] = useState(defaultWeek);
   const [filterCourt, setFilterCourt] = useState("all");
@@ -118,11 +164,6 @@ export default function ScheduleView({
 
   const week = weeks[selectedWeek];
   if (!week) return <p className="text-gray-400 p-6">No data.</p>;
-
-  const coachIndexMap = useMemo(() => {
-    const coaches = [...new Set(week.records.map((r) => r.coach).filter(Boolean))].sort();
-    return new Map(coaches.map((c, i) => [c, i]));
-  }, [week]);
 
   const allCoaches = useMemo(
     () => [...new Set(week.records.map((r) => r.coach).filter(Boolean))].sort(),
@@ -141,14 +182,32 @@ export default function ScheduleView({
 
   const allTimes = SCHEDULE_TIMES;
   const dayDates = useMemo(() => getDayDates(week.weekStart), [week]);
+  const dayISOs = useMemo(() => getDayISOs(week.weekStart), [week]);
+
+  const holidaysByDate = useMemo(() => {
+    const map = new Map<string, CoachHoliday[]>();
+    for (const h of holidays) {
+      if (!map.has(h.date)) map.set(h.date, []);
+      map.get(h.date)!.push(h);
+    }
+    return map;
+  }, [holidays]);
+
+  const remarksByDate = useMemo(() => {
+    const map = new Map<string, DayRemark>();
+    for (const r of remarks) map.set(r.date, r);
+    return map;
+  }, [remarks]);
 
   const dayGrids = useMemo(() => {
     const out: Record<string, GridCell[][]> = {};
     for (const day of DAYS) {
-      out[day] = buildDayGrid(filtered.filter((r) => r.dayName === day), allTimes);
+      const iso = dayISOs[day] ?? "";
+      const timedRemarks = remarks.filter((r) => r.date === iso && r.startTime && r.endTime);
+      out[day] = buildDayGrid(filtered.filter((r) => r.dayName === day), timedRemarks, allTimes);
     }
     return out;
-  }, [filtered, allTimes]);
+  }, [filtered, allTimes, dayISOs, remarks]);
 
   return (
     <div className="space-y-4">
@@ -205,7 +264,7 @@ export default function ScheduleView({
       {/* Coach legend */}
       <div className="flex flex-wrap gap-1.5">
         {allCoaches.map((c) => {
-          const s = coachStyle(c, coachIndexMap);
+          const s = coachStyle(c);
           const active = filterCoach === "all" || filterCoach === c;
           return (
             <button
@@ -252,17 +311,46 @@ export default function ScheduleView({
                 <span className="text-sm font-bold text-gray-500">Time</span>
               </th>
               {/* Day headers with colspan=4 */}
-              {DAYS.map((day) => (
-                <th
-                  key={day}
-                  colSpan={4}
-                  style={{ position: "sticky", top: 0, zIndex: 20 }}
-                  className="bg-gray-50 border-b border-r border-gray-200 text-center py-2 px-1"
-                >
-                  <div className="font-bold text-gray-700 text-sm">{day.slice(0, 3)}</div>
-                  <div className="text-[11px] text-gray-400 font-normal">{dayDates[day]}</div>
-                </th>
-              ))}
+              {DAYS.map((day) => {
+                const iso = dayISOs[day] ?? "";
+                const dayHolidays = holidaysByDate.get(iso) ?? [];
+                // Group by startTime+endTime+note so same-event coaches share one line
+                const groupMap = new Map<string, { coaches: string[]; startTime: string; endTime: string; note: string }>();
+                for (const h of dayHolidays) {
+                  const key = `${h.startTime}|${h.endTime}|${h.note}`;
+                  if (!groupMap.has(key)) groupMap.set(key, { coaches: [], startTime: h.startTime, endTime: h.endTime, note: h.note });
+                  groupMap.get(key)!.coaches.push(h.coach);
+                }
+                const allDayGroups = Array.from(groupMap.values()).filter((g) => g.startTime === "All Day");
+                const timedGroups = Array.from(groupMap.values()).filter((g) => g.startTime !== "All Day");
+                const dayRemarkData = remarksByDate.get(iso);
+                return (
+                  <th
+                    key={day}
+                    colSpan={4}
+                    style={{ position: "sticky", top: 0, zIndex: 20 }}
+                    className="bg-gray-50 border-b border-r border-gray-200 text-center py-1 px-1"
+                  >
+                    <div className="font-bold text-gray-700 text-sm">{day.slice(0, 3)}</div>
+                    <div className="text-[11px] text-gray-400 font-normal">{dayDates[day]}</div>
+                    {dayRemarkData && (
+                      <div className="mt-0.5 text-[10px] text-amber-700 font-medium truncate px-1 leading-tight bg-amber-50 rounded">
+                        {dayRemarkData.startTime ? `${dayRemarkData.startTime}${dayRemarkData.endTime ? `–${dayRemarkData.endTime}` : ""} · ` : ""}{dayRemarkData.remark}
+                      </div>
+                    )}
+                    {allDayGroups.map((g, i) => (
+                      <div key={i} className="mt-0.5 text-[9px] text-red-700 bg-red-100 rounded px-1 leading-tight truncate">
+                        {g.coaches.join(", ")}: {g.note || "off"}
+                      </div>
+                    ))}
+                    {timedGroups.map((g, i) => (
+                      <div key={`t${i}`} className="mt-0.5 text-[9px] text-amber-700 bg-amber-100 rounded px-1 leading-tight truncate">
+                        {g.startTime}–{g.endTime}: {g.coaches.join(", ")}
+                      </div>
+                    ))}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -284,9 +372,7 @@ export default function ScheduleView({
                   return [0, 1, 2, 3].map((col) => {
                     const cell = dayGrid[timeIdx]?.[col];
                     if (cell === "spanned") return null;
-                    const booking = cell ?? null;
-                    const span = booking ? booking.span : 1;
-                    const record = booking ? booking.record : null;
+                    const span = cell ? cell.span : 1;
                     return (
                       <td
                         key={`${day}-${col}`}
@@ -294,12 +380,11 @@ export default function ScheduleView({
                         style={{ overflow: "hidden" }}
                         className={`p-0.5 align-top border-b border-gray-100 ${col === 3 && di < 6 ? "border-r border-gray-200" : col < 3 ? "border-r border-gray-100" : ""}`}
                       >
-                        {record && (
-                          <BookingCard
-                            record={record}
-                            span={span}
-                            coachIndexMap={coachIndexMap}
-                          />
+                        {cell?.kind === "booking" && (
+                          <BookingCard record={cell.record} span={span} />
+                        )}
+                        {cell?.kind === "remark" && (
+                          <RemarkCard remark={cell.remark} span={span} />
                         )}
                       </td>
                     );
@@ -322,13 +407,11 @@ function nextHour(t: string): string {
 function BookingCard({
   record: r,
   span,
-  coachIndexMap,
 }: {
   record: BookingRecord;
   span: number;
-  coachIndexMap: Map<string, number>;
 }) {
-  const cs = coachStyle(r.coach, coachIndexMap);
+  const cs = coachStyle(r.coach);
   const bg = cardBg(r);
 
   return (
@@ -360,6 +443,23 @@ function BookingCard({
           <div className="mt-0.5 rounded px-1 text-[9px] font-medium leading-tight bg-gray-300 text-gray-600">
             –
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RemarkCard({ remark: r, span }: { remark: DayRemark; span: number }) {
+  return (
+    <div
+      className="w-full rounded border border-amber-300 bg-amber-50 overflow-hidden"
+      style={{ height: `${span * ROW_H - 2}px` }}
+    >
+      <div className="px-1 pt-1 pb-0.5">
+        <div className="text-[9px] text-amber-600 leading-tight font-medium">Remark</div>
+        <div className="text-[9px] font-bold text-amber-800 leading-tight truncate">{r.remark}</div>
+        {r.startTime && r.endTime && (
+          <div className="mt-0.5 text-[8px] text-amber-500 leading-tight">{r.startTime}–{r.endTime}</div>
         )}
       </div>
     </div>

@@ -206,6 +206,55 @@ export function withFullYearWeeks<T extends BookingRecord>(
   return result.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
 
+export interface CoachHoliday {
+  date: string;    // ISO yyyy-mm-dd
+  dateDMY: string; // DD/MM/YYYY for storage
+  coach: string;
+  startTime: string; // HH:MM or "All Day"
+  endTime: string;
+  note: string;
+}
+
+export interface DayRemark {
+  date: string;    // ISO yyyy-mm-dd
+  dateDMY: string; // DD/MM/YYYY for storage
+  remark: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export function parseWorkingFile(rows: string[][]): { holidays: CoachHoliday[]; remarks: DayRemark[] } {
+  const holidays: CoachHoliday[] = [];
+  const remarks: DayRemark[] = [];
+  const data = rows.length > 0 && rows[0][0]?.toLowerCase() === "date" ? rows.slice(1) : rows;
+  for (const row of data) {
+    const hDate = row[0]?.trim();
+    if (hDate) {
+      const d = parseDateDMY(hDate);
+      if (d) {
+        holidays.push({
+          date: toISO(d),
+          dateDMY: hDate,
+          coach: row[1]?.trim() ?? "",
+          startTime: row[2]?.trim() || "All Day",
+          endTime: row[3]?.trim() ?? "",
+          note: row[4]?.trim() ?? "",
+        });
+      }
+    }
+    const rDate = row[6]?.trim();
+    if (rDate) {
+      const d = parseDateDMY(rDate);
+      if (d) {
+        const st = row[8]?.trim();
+        const et = row[9]?.trim();
+        remarks.push({ date: toISO(d), dateDMY: rDate, remark: row[7]?.trim() ?? "", startTime: st || undefined, endTime: et || undefined });
+      }
+    }
+  }
+  return { holidays, remarks };
+}
+
 export function totalCourtHours(records: BookingRecord[]): number {
   return records
     .filter((r) => isValidCourt(r.court))

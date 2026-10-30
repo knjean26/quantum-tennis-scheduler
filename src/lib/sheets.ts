@@ -120,6 +120,48 @@ export async function deleteBookingRow(rowIndex: number): Promise<void> {
   });
 }
 
+async function ensureSheetExists(
+  sheetsClient: ReturnType<typeof google.sheets>,
+  sheetName: string
+): Promise<void> {
+  const meta = await sheetsClient.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+  const exists = meta.data.sheets?.some((s) => s.properties?.title === sheetName);
+  if (!exists) {
+    await sheetsClient.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { requests: [{ addSheet: { properties: { title: sheetName } } }] },
+    });
+  }
+}
+
+export async function saveWorkingFileData(
+  holidayRows: string[][],
+  remarkRows: string[][]
+): Promise<void> {
+  const auth = getAuth(true);
+  const sheets = google.sheets({ version: "v4", auth });
+  const sheetName = "working file";
+  await ensureSheetExists(sheets, sheetName);
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!A1:J500`,
+  });
+  const header = ["Date", "Coach", "StartTime", "EndTime", "Note", "", "Date", "Remark", "StartTime", "EndTime"];
+  const maxRows = Math.max(holidayRows.length, remarkRows.length);
+  const dataRows: string[][] = [];
+  for (let i = 0; i < maxRows; i++) {
+    const h = holidayRows[i] ?? [];
+    const r = remarkRows[i] ?? [];
+    dataRows.push([h[0]??"", h[1]??"", h[2]??"", h[3]??"", h[4]??"", "", r[0]??"", r[1]??"", r[2]??"", r[3]??""]);
+  }
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!A1`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: [header, ...dataRows] },
+  });
+}
+
 export async function getNamedSheetRows(sheetName: string): Promise<string[][]> {
   const auth = getAuth();
   const sheets = google.sheets({ version: "v4", auth });

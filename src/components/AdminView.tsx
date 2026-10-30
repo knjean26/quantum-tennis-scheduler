@@ -1,38 +1,71 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { parseAdminBookings, groupByWeek, withFullYearWeeks } from "@/lib/parse";
-import type { AdminBooking } from "@/lib/parse";
+import { parseAdminBookings, groupByWeek, withFullYearWeeks, calcDuration } from "@/lib/parse";
+import type { AdminBooking, CoachHoliday, DayRemark } from "@/lib/parse";
 import BookingFormModal from "./BookingFormModal";
 import type { BookingFormData } from "./BookingFormModal";
 import CopyBookingModal from "./CopyBookingModal";
-import RateCardEditor from "./RateCardEditor";
 import StudentMonitor from "./StudentMonitor";
+import HolidayRemarkEditor from "./HolidayRemarkEditor";
 
 const ROW_H = 60;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const COACH_PALETTE = [
-  { bg: "bg-blue-500", text: "text-white" },
-  { bg: "bg-emerald-500", text: "text-white" },
-  { bg: "bg-amber-500", text: "text-white" },
-  { bg: "bg-purple-500", text: "text-white" },
-  { bg: "bg-rose-500", text: "text-white" },
-  { bg: "bg-cyan-600", text: "text-white" },
-  { bg: "bg-orange-500", text: "text-white" },
-  { bg: "bg-indigo-500", text: "text-white" },
-  { bg: "bg-pink-500", text: "text-white" },
-  { bg: "bg-teal-600", text: "text-white" },
-  { bg: "bg-lime-600", text: "text-white" },
+const COACH_COLOR_MAP: Record<string, { bg: string; text: string }> = {
+  "Earn":   { bg: "bg-red-500",     text: "text-white" },
+  "New":    { bg: "bg-pink-400",    text: "text-white" },
+  "Nuttie": { bg: "bg-blue-500",    text: "text-white" },
+  "Aoi":    { bg: "bg-indigo-700",  text: "text-white" },
+  "Eddy":   { bg: "bg-green-600",   text: "text-white" },
+  "Meel":   { bg: "bg-orange-500",  text: "text-white" },
+  "Wison":  { bg: "bg-amber-800",   text: "text-white" },
+  "Benz":   { bg: "bg-purple-500",  text: "text-white" },
+};
+const COACH_FALLBACK_PALETTE = [
+  { bg: "bg-cyan-600",    text: "text-white" },
+  { bg: "bg-teal-600",    text: "text-white" },
+  { bg: "bg-lime-600",    text: "text-white" },
   { bg: "bg-fuchsia-600", text: "text-white" },
+  { bg: "bg-sky-500",     text: "text-white" },
+  { bg: "bg-violet-500",  text: "text-white" },
+  { bg: "bg-emerald-600", text: "text-white" },
+  { bg: "bg-rose-600",    text: "text-white" },
 ];
 
-type GridCell = null | "spanned" | { record: AdminBooking; span: number };
+interface CombinedHoliday {
+  coaches: string[];
+  startTime: string;
+  endTime: string;
+  note: string;
+}
 
-function buildGrid(records: AdminBooking[], allTimes: string[]): GridCell[][] {
+function groupHolidays(holidays: CoachHoliday[]): CombinedHoliday[] {
+  const map = new Map<string, CombinedHoliday>();
+  for (const h of holidays) {
+    const key = `${h.startTime}|${h.endTime}|${h.note}`;
+    if (!map.has(key)) map.set(key, { coaches: [], startTime: h.startTime, endTime: h.endTime, note: h.note });
+    map.get(key)!.coaches.push(h.coach);
+  }
+  return Array.from(map.values());
+}
+
+type GridCellData =
+  | { kind: "booking"; record: AdminBooking; span: number }
+  | { kind: "holiday"; holiday: CombinedHoliday; span: number }
+  | { kind: "remark"; remark: DayRemark; span: number };
+type GridCell = null | "spanned" | GridCellData;
+
+function buildGrid(
+  records: AdminBooking[],
+  timedHolidays: CombinedHoliday[],
+  timedRemarks: DayRemark[],
+  allTimes: string[]
+): GridCell[][] {
   const n = allTimes.length;
   const timeIdx = new Map(allTimes.map((t, i) => [t, i]));
   const grid: GridCell[][] = Array.from({ length: n }, () => [null, null, null, null]);
+
   const sorted = [...records].sort((a, b) => {
     const tc = a.startTime.localeCompare(b.startTime);
     return tc !== 0 ? tc : b.duration - a.duration;
@@ -44,12 +77,44 @@ function buildGrid(records: AdminBooking[], allTimes: string[]): GridCell[][] {
     const slots = Array.from({ length: span }, (_, i) => si + i).filter((i) => i < n);
     for (let col = 0; col < 4; col++) {
       if (slots.every((i) => grid[i][col] === null)) {
-        grid[si][col] = { record, span: slots.length };
+        grid[si][col] = { kind: "booking", record, span: slots.length };
         for (let i = 1; i < slots.length; i++) grid[si + i][col] = "spanned";
         break;
       }
     }
   }
+
+  for (const holiday of timedHolidays) {
+    const si = timeIdx.get(holiday.startTime);
+    if (si === undefined) continue;
+    const dur = calcDuration(holiday.startTime, holiday.endTime);
+    const span = Math.max(1, Math.ceil(dur));
+    const slots = Array.from({ length: span }, (_, i) => si + i).filter((i) => i < n);
+    for (let col = 0; col < 4; col++) {
+      if (slots.every((i) => grid[i][col] === null)) {
+        grid[si][col] = { kind: "holiday", holiday, span: slots.length };
+        for (let k = 1; k < slots.length; k++) grid[si + k][col] = "spanned";
+        break;
+      }
+    }
+  }
+
+  for (const rem of timedRemarks) {
+    if (!rem.startTime || !rem.endTime) continue;
+    const si = timeIdx.get(rem.startTime);
+    if (si === undefined) continue;
+    const dur = calcDuration(rem.startTime, rem.endTime);
+    const span = Math.max(1, Math.ceil(dur));
+    const slots = Array.from({ length: span }, (_, i) => si + i).filter((i) => i < n);
+    for (let col = 0; col < 4; col++) {
+      if (slots.every((i) => grid[i][col] === null)) {
+        grid[si][col] = { kind: "remark", remark: rem, span: slots.length };
+        for (let k = 1; k < slots.length; k++) grid[si + k][col] = "spanned";
+        break;
+      }
+    }
+  }
+
   return grid;
 }
 
@@ -78,6 +143,20 @@ function getDayDates(weekStart: string): Record<string, string> {
   return result;
 }
 
+function getDayISOs(weekStart: string): Record<string, string> {
+  const mon = new Date(weekStart + "T00:00:00");
+  const result: Record<string, string> = {};
+  DAYS.forEach((day, i) => {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    result[day] = `${y}-${mo}-${dd}`;
+  });
+  return result;
+}
+
 function getDateForDay(weekStart: string, dayName: string): string {
   const offset = DAYS.indexOf(dayName);
   const mon = new Date(weekStart + "T00:00:00");
@@ -89,17 +168,18 @@ function getDateForDay(weekStart: string, dayName: string): string {
   return `${y}-${mo}-${day}`;
 }
 
-function coachStyle(coach: string, indexMap: Map<string, number>) {
+function coachStyle(coach: string) {
   if (!coach) return { bg: "bg-gray-400", text: "text-white" };
-  const idx = indexMap.get(coach) ?? 0;
-  return COACH_PALETTE[idx % COACH_PALETTE.length];
+  if (COACH_COLOR_MAP[coach]) return COACH_COLOR_MAP[coach];
+  let hash = 0;
+  for (let i = 0; i < coach.length; i++) hash = (hash * 31 + coach.charCodeAt(i)) & 0xffff;
+  return COACH_FALLBACK_PALETTE[hash % COACH_FALLBACK_PALETTE.length];
 }
 
 const SCHEDULE_TIMES = Array.from({ length: 17 }, (_, i) =>
   `${String(6 + i).padStart(2, "0")}:00`
 );
 
-// Columns with Google Sheets formulas — never write to these (H=7, J=9, AU-BA=46-52).
 const FORMULA_COLS = new Set([7, 9, 46, 47, 48, 49, 50, 51, 52]);
 const MANAGED_COLS = [0, 1, 2, 3, 4, 5, 6, 8, 43, 45, 59, 60, 61];
 
@@ -135,9 +215,11 @@ interface AdminData {
   dropdowns: { classTypes: string[]; clients: string[]; coaches: string[]; courts: string[] };
   rateCard: string[][];
   coachRateCard: string[][];
+  holidays: CoachHoliday[];
+  remarks: DayRemark[];
 }
 
-type Tab = "schedule" | "ratecard" | "coachratecard" | "students";
+type Tab = "schedule" | "students" | "holidays";
 type FormState =
   | { mode: "add"; prefill?: { date?: string; startTime?: string } }
   | { mode: "edit"; booking: AdminBooking }
@@ -182,7 +264,6 @@ export default function AdminView() {
 
   useEffect(() => {
     if (!weeks.length) return;
-    // After an add, jump to the week containing the new booking
     if (pendingWeekRef.current) {
       const idx = weeks.findIndex((w) => w.weekStart === pendingWeekRef.current);
       if (idx !== -1) setSelectedWeek(idx);
@@ -190,7 +271,6 @@ export default function AdminView() {
       hasInitialized.current = true;
       return;
     }
-    // On first load only, jump to the current week
     if (hasInitialized.current) return;
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -204,7 +284,6 @@ export default function AdminView() {
   }, [weeks]);
 
   const currentWeek = weeks[selectedWeek];
-
   const allTimes = SCHEDULE_TIMES;
 
   const dayDates = useMemo(
@@ -212,23 +291,47 @@ export default function AdminView() {
     [currentWeek]
   );
 
-  const coachIndexMap = useMemo(() => {
-    if (!currentWeek) return new Map<string, number>();
-    const coaches = [...new Set(currentWeek.records.map((r) => r.coach).filter(Boolean))].sort();
-    return new Map(coaches.map((c, i) => [c, i]));
-  }, [currentWeek]);
+  const dayISOs = useMemo(
+    () => (currentWeek ? getDayISOs(currentWeek.weekStart) : {}),
+    [currentWeek]
+  );
+
+  // Index holidays and remarks by date for quick lookup
+  const holidaysByDate = useMemo(() => {
+    const map = new Map<string, CoachHoliday[]>();
+    for (const h of adminData?.holidays ?? []) {
+      if (!map.has(h.date)) map.set(h.date, []);
+      map.get(h.date)!.push(h);
+    }
+    return map;
+  }, [adminData?.holidays]);
+
+  const remarksByDate = useMemo(() => {
+    const map = new Map<string, DayRemark>();
+    for (const r of adminData?.remarks ?? []) map.set(r.date, r);
+    return map;
+  }, [adminData?.remarks]);
 
   const dayGrids = useMemo(() => {
     if (!currentWeek) return {} as Record<string, GridCell[][]>;
     const out: Record<string, GridCell[][]> = {};
     for (const day of DAYS) {
+      const iso = dayISOs[day] ?? "";
+      const dayHolidays = holidaysByDate.get(iso) ?? [];
+      const timedHolidays = groupHolidays(
+        dayHolidays.filter((h) => h.startTime !== "All Day" && h.startTime && h.endTime)
+      );
+      const allRemarks = adminData?.remarks ?? [];
+      const timedRemarks = allRemarks.filter((r) => r.date === iso && r.startTime && r.endTime);
       out[day] = buildGrid(
         currentWeek.records.filter((r) => r.dayName === day),
+        timedHolidays,
+        timedRemarks,
         allTimes
       );
     }
     return out;
-  }, [currentWeek, allTimes]);
+  }, [currentWeek, allTimes, dayISOs, holidaysByDate]);
 
   async function handleSave(data: BookingFormData) {
     if (!formState) return;
@@ -242,7 +345,6 @@ export default function AdminView() {
           body: JSON.stringify({ fieldMap }),
         });
         if (!res.ok) throw new Error("Failed to add booking");
-        // Store the booking's week so we navigate there after reload
         if (data.date) {
           const d = new Date(data.date + "T00:00:00");
           const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
@@ -308,7 +410,6 @@ export default function AdminView() {
         });
         if (!res.ok) throw new Error("Failed to copy booking");
       }
-      // Navigate to the week of the first copied date
       if (dates[0]) {
         const d = new Date(dates[0] + "T00:00:00");
         const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
@@ -324,24 +425,21 @@ export default function AdminView() {
     }
   }
 
-  async function handleSaveRateCard(rows: string[][]) {
-    const res = await fetch("/api/admin/rate-card", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows }),
-    });
-    if (!res.ok) throw new Error("Failed to save Rate Card");
-    await loadData();
-  }
-
-  async function handleSaveCoachRateCard(rows: string[][]) {
-    const res = await fetch("/api/admin/coach-rate-card", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows }),
-    });
-    if (!res.ok) throw new Error("Failed to save Coach Rate Card");
-    await loadData();
+  async function handleSaveWorkingFile(holidays: CoachHoliday[], remarks: DayRemark[]) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/working-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ holidays, remarks }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      await loadData();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading && !adminData) {
@@ -362,8 +460,7 @@ export default function AdminView() {
   const tabs: { key: Tab; label: string }[] = [
     { key: "schedule", label: "Schedule" },
     { key: "students", label: "Students" },
-    { key: "ratecard", label: "Rate Card" },
-    { key: "coachratecard", label: "Coach Rate Card" },
+    { key: "holidays", label: "Holidays & Remarks" },
   ];
 
   return (
@@ -452,17 +549,40 @@ export default function AdminView() {
                     >
                       <span className="text-sm font-bold text-gray-500">Time</span>
                     </th>
-                    {DAYS.map((day) => (
-                      <th
-                        key={day}
-                        colSpan={4}
-                        style={{ position: "sticky", top: 0, zIndex: 20 }}
-                        className="bg-gray-50 border-b border-r border-gray-200 text-center py-2 px-1"
-                      >
-                        <div className="font-bold text-gray-700 text-sm">{day.slice(0, 3)}</div>
-                        <div className="text-[11px] text-gray-400">{dayDates[day]}</div>
-                      </th>
-                    ))}
+                    {DAYS.map((day) => {
+                      const iso = dayISOs[day] ?? "";
+                      const dayHolidays = holidaysByDate.get(iso) ?? [];
+                      const grouped = groupHolidays(dayHolidays);
+                      const allDayGroups = grouped.filter((g) => g.startTime === "All Day");
+                      const timedGroups = grouped.filter((g) => g.startTime !== "All Day");
+                      const dayRemarkData = remarksByDate.get(iso);
+                      return (
+                        <th
+                          key={day}
+                          colSpan={4}
+                          style={{ position: "sticky", top: 0, zIndex: 20 }}
+                          className="bg-gray-50 border-b border-r border-gray-200 text-center py-1 px-1"
+                        >
+                          <div className="font-bold text-gray-700 text-sm">{day.slice(0, 3)}</div>
+                          <div className="text-[11px] text-gray-400">{dayDates[day]}</div>
+                          {dayRemarkData && (
+                            <div className="mt-0.5 text-[10px] text-amber-700 font-medium truncate px-1 leading-tight bg-amber-50 rounded">
+                              {dayRemarkData.startTime ? `${dayRemarkData.startTime}${dayRemarkData.endTime ? `–${dayRemarkData.endTime}` : ""} · ` : ""}{dayRemarkData.remark}
+                            </div>
+                          )}
+                          {allDayGroups.map((g, i) => (
+                            <div key={i} className="mt-0.5 text-[9px] text-red-700 font-medium bg-red-100 rounded px-1 leading-tight truncate">
+                              {g.coaches.join(", ")}: {g.note || "off"}
+                            </div>
+                          ))}
+                          {timedGroups.map((g, i) => (
+                            <div key={`t${i}`} className="mt-0.5 text-[9px] text-amber-700 bg-amber-100 rounded px-1 leading-tight truncate">
+                              {g.startTime}–{g.endTime}: {g.coaches.join(", ")}
+                            </div>
+                          ))}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -488,17 +608,15 @@ export default function AdminView() {
                         return [0, 1, 2, 3].map((col) => {
                           const cell = dayGrid[timeIdx]?.[col];
                           if (cell === "spanned") return null;
-                          const booking = cell ?? null;
-                          const span = booking ? booking.span : 1;
-                          const record = booking ? booking.record : null;
+                          const span = cell ? cell.span : 1;
                           return (
                             <td
                               key={`${day}-${col}`}
                               rowSpan={span}
                               style={{ overflow: "hidden" }}
-                              className={`p-0.5 align-top border-b border-gray-100 ${col === 3 && di < 6 ? "border-r border-gray-200" : col < 3 ? "border-r border-gray-100" : ""} ${!record ? "cursor-pointer hover:bg-emerald-50/50 group" : ""}`}
+                              className={`p-0.5 align-top border-b border-gray-100 ${col === 3 && di < 6 ? "border-r border-gray-200" : col < 3 ? "border-r border-gray-100" : ""} ${!cell ? "cursor-pointer hover:bg-emerald-50/50 group" : ""}`}
                               onClick={
-                                !record
+                                !cell
                                   ? () => {
                                       const date = getDateForDay(currentWeek.weekStart, day);
                                       setFormState({ mode: "add", prefill: { date, startTime: time } });
@@ -506,13 +624,16 @@ export default function AdminView() {
                                   : undefined
                               }
                             >
-                              {record ? (
+                              {cell?.kind === "booking" ? (
                                 <AdminCard
-                                  record={record}
+                                  record={cell.record}
                                   span={span}
-                                  coachIndexMap={coachIndexMap}
-                                  onClick={() => setFormState({ mode: "edit", booking: record })}
+                                  onClick={() => setFormState({ mode: "edit", booking: cell.record })}
                                 />
+                              ) : cell?.kind === "holiday" ? (
+                                <HolidayCard holiday={cell.holiday} span={span} />
+                              ) : cell?.kind === "remark" ? (
+                                <RemarkCard remark={cell.remark} span={span} />
                               ) : (
                                 <div className="h-full w-full flex items-center justify-center opacity-0 group-hover:opacity-100 text-emerald-400 text-base font-thin select-none">
                                   +
@@ -536,21 +657,14 @@ export default function AdminView() {
         <StudentMonitor bookings={parsedBookings} />
       )}
 
-      {/* Rate Card tab */}
-      {activeTab === "ratecard" && adminData && (
-        <RateCardEditor
-          title="Rate Card"
-          rows={adminData.rateCard}
-          onSave={handleSaveRateCard}
-        />
-      )}
-
-      {/* Coach Rate Card tab */}
-      {activeTab === "coachratecard" && adminData && (
-        <RateCardEditor
-          title="Coach Rate Card"
-          rows={adminData.coachRateCard}
-          onSave={handleSaveCoachRateCard}
+      {/* Holidays & Remarks tab */}
+      {activeTab === "holidays" && adminData && (
+        <HolidayRemarkEditor
+          holidays={adminData.holidays}
+          remarks={adminData.remarks}
+          coaches={[...new Set([...adminData.dropdowns.coaches, "Wison", "Moo"])].filter((c) => c !== "Son").sort()}
+          onSave={handleSaveWorkingFile}
+          saving={saving}
         />
       )}
 
@@ -587,15 +701,13 @@ export default function AdminView() {
 function AdminCard({
   record: r,
   span,
-  coachIndexMap,
   onClick,
 }: {
   record: AdminBooking;
   span: number;
-  coachIndexMap: Map<string, number>;
   onClick: () => void;
 }) {
-  const cs = coachStyle(r.coach, coachIndexMap);
+  const cs = coachStyle(r.coach);
   const bg =
     r.remark === "Cancel"
       ? "bg-red-200 border-red-500"
@@ -673,6 +785,42 @@ function AdminCard({
         <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
         </svg>
+      </div>
+    </div>
+  );
+}
+
+function RemarkCard({ remark: r, span }: { remark: DayRemark; span: number }) {
+  return (
+    <div
+      className="w-full rounded border border-amber-300 bg-amber-50 overflow-hidden"
+      style={{ height: `${span * ROW_H - 2}px` }}
+    >
+      <div className="px-1 pt-1 pb-0.5">
+        <div className="mt-0.5 text-[9px] text-amber-600 leading-tight font-medium">Remark</div>
+        <div className="text-[9px] font-bold text-amber-800 leading-tight truncate">{r.remark}</div>
+        {r.startTime && r.endTime && (
+          <div className="mt-0.5 text-[8px] text-amber-500 leading-tight">{r.startTime}–{r.endTime}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HolidayCard({ holiday: h, span }: { holiday: CombinedHoliday; span: number }) {
+  return (
+    <div
+      className="w-full rounded border border-red-300 bg-red-50 overflow-hidden"
+      style={{ height: `${span * ROW_H - 2}px` }}
+    >
+      <div className="px-1 pt-1 pb-0.5">
+        <div className="mt-0.5 text-[9px] text-red-500 leading-tight font-medium">Unavailable</div>
+        {h.coaches.map((c, i) => (
+          <div key={i} className="text-[9px] font-bold text-red-700 leading-tight truncate">{c}</div>
+        ))}
+        {h.note && (
+          <div className="mt-0.5 text-[8px] text-red-400 leading-tight truncate">{h.note}</div>
+        )}
       </div>
     </div>
   );

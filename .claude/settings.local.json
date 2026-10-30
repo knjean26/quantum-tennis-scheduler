@@ -50,7 +50,24 @@
       "Bash(gh --version)",
       "Bash(gh auth *)",
       "Bash(gh repo *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(git -C \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\" status)",
+      "Bash(git -C \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\" diff)",
+      "Bash(git -C \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\" add src/components/AdminView.tsx src/lib/sheets.ts)",
+      "Bash(git -C 'C:\\\\Quantum Tennis\\\\Quantum Scheduler' commit -m ' *)",
+      "Bash(git -C \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\" add src/components/BookingFormModal.tsx src/components/AdminView.tsx)",
+      "Bash(git *)",
+      "Bash(curl *)",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(New-Item -ItemType Directory -Force \"C:\\\\Quantum Tennis\\\\Quantum Scheduler\\\\src\\\\app\\\\api\\\\admin\\\\working-file\")",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"done\")",
+      "PowerShell(vercel *)"
     ]
   }
 }
